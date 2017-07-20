@@ -1,0 +1,6 @@
+SECTIONS {
+    .dram 0x40000000 : {
+        *(.dram)
+    }
+}
+INSERT AFTER .text;

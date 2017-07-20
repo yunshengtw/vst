@@ -1,0 +1,61 @@
+This document describes the modifications to Jasmine OpenSSD.
+
+1. mismatched pointer/integer size
+----------------------------------
+Description
+-----------
+On the Jasmine OpenSSD dev board, pointers are 32-bit; on our PC/work station,
+pointers are 64-bit. Originally, some functions/macros involve casting from 
+pointer to 32-bit integer and vice versa. These includes:
+
+(target.h)
+SETREG
+GETREG
+
+(flash.h)
+_BSP_FSM
+_BSP_INTR
+_CLR_BSP_INTR
+
+(mem_util.h)
+_read_dram_xx, xx = 8, 16, 32
+_write_dram_xx, xx = 8, 16, 32
+_xx_bit_dram, xx = set, clr, tst
+_mem_set_sram
+_mem_copy
+
+(ftl.c)
+firmware_image_pages
+
+2. porting
+----------
+Description
+-----------
+Macro functions are ported directly in header file; normal functions are ported
+in port.c.
+
+3. NULL
+-------
+Description
+-----------
+Jasmine redefine NULL as 0 and constantly use NULL to initialize some data
+structure.
+
+Solution
+--------
+Remove redefinition. Modify NULL with 0.
+
+4. inclusion
+------------
+Description
+-----------
+Originally,
+ftl.c include jasmine.h
+jasmine.h include ftl.h
+These inclusions make vst-jasmine depends on a paticular FTL.
+
+Solution
+--------
+ftl.c include ftl.h
+ftl.h include jasmine.h
+jasmine no longer include ftl.h
