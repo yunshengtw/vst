@@ -5,10 +5,28 @@
 
 #include "vst.h"
 
+typedef struct flash_page {
+    u8 *data;
+    u8 is_erased;
+    u32 lpn;
+} flash_page_t;
+
+typedef struct flash_block {
+    flash_page_t pages[VST_PAGES_PER_BLOCK];
+} flash_block_t;
+
+typedef struct flash_bank {
+    flash_block_t blocks[VST_BLOCKS_PER_BANK];
+} flash_bank_t;
+
+typedef struct flash_top {
+    flash_bank_t banks[VST_NUM_BANKS];
+} flash_t;
+
 // TODO: assertions
 
 /* emulated DRAM and Flash memory */
-static u8 __attribute__((section (".dram"))) dram[VST_SIZE_DRAM];
+u8 __attribute__((section (".dram"))) dram[VST_DRAM_SIZE];
 static flash_t flash;
 
 /* statistic results */
@@ -52,6 +70,11 @@ void vst_read_page(u32 const bank, u32 const blk, u32 const page,
             report_bug(msg);
             assert(0);
         }
+        #ifdef DEBUG
+        else {
+            //printf("[DEBUG] LPN matched, lpn = %u\n", lpn);
+        }
+        #endif
     } else {
         u8 *addr = (u8 *)dram_addr;
         if (get_page(bank, blk, page).data == NULL) {
@@ -67,6 +90,9 @@ void vst_write_page(u32 const bank, u32 const blk, u32 const page,
                 u32 const sect, u32 const n_sect, u64 const dram_addr,
                 u32 const lpn, u8 const is_host_data)
 {
+    #ifdef DEBUG
+    //printf("[DEBUG] bank = %u blk = %u page = %u\n", bank, blk, page);
+    #endif
     u32 start, length;
 
     start = sect * VST_BYTES_PER_SECTOR;
@@ -105,7 +131,11 @@ void vst_write_page(u32 const bank, u32 const blk, u32 const page,
 void vst_copyback_page(u32 const bank, u32 const blk_src, u32 const page_src,
                    u32 const blk_dst, u32 const page_dst)
 {
-    if (!get_page(bank, blk_src, page_src).is_erased) {
+    #ifdef DEBUG
+    //printf("[DEBUG] src = (%u, %u) dst = (%u, %u)\n", 
+    //        blk_src, page_src, blk_dst, page_dst);
+    #endif
+    if (!get_page(bank, blk_dst, page_dst).is_erased) {
         char msg[200];
         sprintf(msg, "in-place write to dirty page, "
             "bank = %u " 
@@ -116,6 +146,7 @@ void vst_copyback_page(u32 const bank, u32 const blk_src, u32 const page_src,
         assert(0);
     }
 
+    get_page(bank, blk_dst, page_dst).is_erased = 0;
     get_page(bank, blk_dst, page_dst).lpn =
         get_page(bank, blk_src, page_src).lpn;
 
@@ -130,7 +161,7 @@ void vst_erase_block(u32 const bank, u32 const blk)
 {
     u32 i;
 
-    for (i = 0; i < VST_PAGES_PER_BLK; i++) {
+    for (i = 0; i < VST_PAGES_PER_BLOCK; i++) {
         get_page(bank, blk, i).is_erased = 1;
         u8 *data = get_page(bank, blk, i).data;
         if (data != NULL) {
@@ -142,39 +173,38 @@ void vst_erase_block(u32 const bank, u32 const blk)
 
 /* RAM APIs */
 // TODO: assert dram limit
-// TODO: consistent name, dram or ext
-u8 vst_read_ext_8(u64 const addr)
+u8 vst_read_dram_8(u64 const addr)
 {
     return *(u8 *)addr;
 }
 
-u16 vst_read_ext_16(u64 const addr)
+u16 vst_read_dram_16(u64 const addr)
 {
     assert(!(addr & 1));
 
     return *(u16 *)addr;
 }
 
-u32 vst_read_ext_32(u64 const addr)
+u32 vst_read_dram_32(u64 const addr)
 {
     assert(!(addr & 3));
 
     return *(u32 *)addr;
 }
 
-void vst_write_ext_8(u64 const addr, u8 const val)
+void vst_write_dram_8(u64 const addr, u8 const val)
 {
     *(u8 *)addr = val;
 }
 
-void vst_write_ext_16(u64 const addr, u16 const val)
+void vst_write_dram_16(u64 const addr, u16 const val)
 {
     assert(!(addr & 1));
 
     *(u16 *)addr = val;
 }
 
-void vst_write_ext_32(u64 const addr, u32 const val)
+void vst_write_dram_32(u64 const addr, u32 const val)
 {
     assert(!(addr & 3));
 
@@ -184,45 +214,123 @@ void vst_write_ext_32(u64 const addr, u32 const val)
 void vst_set_bit_dram(u64 const base_addr, u32 const bit_offset)
 {
     u64 addr = base_addr + bit_offset / 8;
-    addr = addr & ~0x3;
-    u32 offset = bit_offset % 32;
+    u32 offset = bit_offset % 8;
 
-    *(u32 *)addr = *(u32 *)addr | (1 << offset);
+    *(u8 *)addr = *(u8 *)addr | (1 << offset);
 }
 
 void vst_clr_bit_dram(u64 const base_addr, u32 const bit_offset)
 {
     u64 addr = base_addr + bit_offset / 8;
-    addr = addr & ~0x3;
-    u32 offset = bit_offset % 32;
+    u32 offset = bit_offset % 8;
 
-    *(u32 *)addr = *(u32 *)addr & ~(1 << offset);
+    *(u8 *)addr = *(u8 *)addr & ~(1 << offset);
 }
 
 u32 vst_tst_bit_dram(u64 const base_addr, u32 const bit_offset)
 {
     u64 addr = base_addr + bit_offset / 8;
-    addr = addr & ~0x3;
-    u32 offset = bit_offset % 32;
+    u32 offset = bit_offset % 8;
 
-    return (*(u32 *)addr) & (1 << offset);
+    return (*(u8 *)addr) & (1 << offset);
 }
 
-void vst_mem_copy(u64 const dst, u64 const src, u32 const len)
+void vst_memcpy(u64 const dst, u64 const src, u32 const len)
 {
     memcpy((void *)dst, (void *)src, len);
 }
 
-void vst_mem_set_sram(u64 const addr, u32 const val, u32 const len)
+void vst_memset(u64 const addr, u32 const val, u32 const len)
 {
     memset((void *)addr, val, len);
 }
 
-void vst_mem_set_dram(u64 const addr, u32 const val, u32 const len)
+u32 vst_mem_search_min(u64 const addr, u32 const unit, u32 const size)
 {
-    // TODO: dram boundary check
+    assert(unit == 1 || unit == 2 || unit == 4);
+    assert(!(addr % unit));
+    assert(size != 0);
 
-    memset((void *)addr, val, len);
+    u32 i;
+    u32 idx = 0;
+    if (unit == 1) {
+        u8 *vals = (u8 *)addr;
+        u8 min = vals[0];
+        for (i = 1; i < size; i++) {
+            if (vals[i] < min) {
+                min = vals[i];
+                idx = i;
+            }
+        }
+    } else if (unit == 2) {
+        u16 *vals = (u16 *)addr;
+        u16 min = vals[0];
+        for (i = 1; i < size; i++) {
+            if (vals[i] < min) {
+                min = vals[i];
+                idx = i;
+            }
+        }
+    } else {
+        u32 *vals = (u32 *)addr;
+        u32 min = vals[0];
+        for (i = 1; i < size; i++) {
+            if (vals[i] < min) {
+                min = vals[i];
+                idx = i;
+            }
+        }
+    }
+    #ifdef DEBUG
+    //printf("[DEBUG] idx = %u\n", idx);
+    #endif
+    return idx;
+}
+
+u32 vst_mem_search_max(u64 const addr, u32 const unit, u32 const size)
+{
+    assert(!(addr % size));
+    assert(unit == 1 || unit == 2 || unit == 4);
+    assert(size != 0);
+
+    u32 i;
+    u32 idx = 0;
+    if (unit == 1) {
+        u8 *vals = (u8 *)addr;
+        u8 max = vals[0];
+        for (i = 1; i < size; i++) {
+            if (vals[i] > max) {
+                max = vals[i];
+                idx = i;
+            }
+        }
+    } else if (unit == 2) {
+        u16 *vals = (u16 *)addr;
+        u16 max = vals[0];
+        for (i = 1; i < size; i++) {
+            if (vals[i] > max) {
+                max = vals[i];
+                idx = i;
+            }
+        }
+    } else {
+        u32 *vals = (u32 *)addr;
+        u32 max = vals[0];
+        for (i = 1; i < size; i++) {
+            if (vals[i] > max) {
+                max = vals[i];
+                idx = i;
+            }
+        }
+    }
+    return idx;
+}
+
+u32 vst_mem_search_equ(u64 const addr, u32 const unit,
+                       u32 const size, u32 const val)
+{
+    //TODO
+    return 0;
 }
 
 /* init */
@@ -239,21 +347,23 @@ static void init_flash(void)
     u32 i, j, k;
 
     for (i = 0; i < VST_NUM_BANKS; i++) {
-        for (j = 0; j < VST_BLKS_PER_BANK; j++) {
-            for (k = 0; k < VST_PAGES_PER_BLK; k++) {
+        for (j = 0; j < VST_BLOCKS_PER_BANK; j++) {
+            for (k = 0; k < VST_PAGES_PER_BLOCK; k++) {
                 get_page(i, j, k).data = NULL;
                 get_page(i, j, k).is_erased = 1;
             }
         }
     }
+    printf("[INFO] Flash initialized\n");
 }
 
 static void init_dram(void)
 {
     u32 i;
 
-    for (i = 0; i < VST_SIZE_DRAM; i++)
+    for (i = 0; i < VST_DRAM_SIZE; i++)
         dram[i] = 0;
+    printf("[INFO] DRAM initialized\n");
 }
 
 static void init_statistic(void)

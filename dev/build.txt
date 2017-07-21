@@ -1,0 +1,37 @@
+This document describes compiling/linking issues.
+
+1. compiling
+------------
+1-1. .dram section disappear with optimization
+---------------------------------------------
+Description
+-----------
+When the optimization level is turned on (O1, O2, O3), the .dram is no longer
+place as defined in the linker script, which then causes a seg fault.
+
+Solution
+-------
+Remove "static" prefix for dram.
+
+2. linking
+----------
+2-1. dynamic symbol table
+-------------------------
+Description
+-----------
+With the FTL compiled as shared object, the shared object will access some
+VST functions. If the shared object is dynamic-linked, the symbols that it
+requires will be placed in dynamic symbol table in link time. However, as we
+dynamic load the shared object, the dynamic symbol will be empty if no
+additional flags are set.
+
+Solution
+--------
+Enable -rdynamic will put all the symbols in dynamic symbol table.
+
+-rdynamic
+   Pass the flag -export-dynamic to the ELF linker, on targets that
+   support it. This instructs the linker to add all symbols, not only
+   used ones, to the dynamic symbol table. This option is needed for some
+   uses of "dlopen" or to allow obtaining backtraces from within a program.
+

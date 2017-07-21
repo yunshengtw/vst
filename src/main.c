@@ -13,6 +13,17 @@
 #include "vst.h"
 #include "config.h"
 
+#define MAX_SIZE_TRACE 45746223
+
+/* trace struct */
+struct trace_ent {
+    uint32_t lba, sec_num, rw;
+};
+
+static void print_ssd_config(void);
+static void print_statistic(void);
+static int load_trace(FILE *fp_trace, struct trace_ent *traces);
+
 /* global variables */
 double time_spent;
 int trace_cnt;
@@ -25,18 +36,20 @@ extern int optind;
 
 int main(int argc, char *argv[])
 {
+    //TODO: make main conciser
 	FILE *fp_trace;
-	double time;
 	void *handle;
 	char *dl_err;
-	uint32_t rsv, lba, sec_num, rw;
 	int opt;
 	uint64_t bound;
+	uint32_t lba, sec_num, rw;
+    int size_trace;
 	void (*ftl_open)(void);
 	void (*ftl_read)(uint32_t const, uint32_t const);
 	void (*ftl_write)(uint32_t const, uint32_t const);
 	void (*ftl_flush)(void);
 	int done;
+    struct trace_ent *traces;
 
 	bound = 1;
 	while ((opt = getopt(argc, argv, "ab:")) != -1) {
@@ -78,14 +91,18 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	ftl_read = (void (*)(uint32_t const, uint32_t const))dlsym(handle, "ftl_read");
+	ftl_read = (void (*)(uint32_t const, uint32_t const))dlsym(
+            handle, 
+            "ftl_read");
 	dl_err = dlerror();
 	if (dl_err != NULL) {
 		fprintf(stderr, "Fail resolving symbol ftl_read.\n");
 		return 1;
 	}
 
-	ftl_write = (void (*)(uint32_t const, uint32_t const))dlsym(handle, "ftl_write");
+	ftl_write = (void (*)(uint32_t const, uint32_t const))dlsym(
+            handle, 
+            "ftl_write");
 	dl_err = dlerror();
 	if (dl_err != NULL) {
 		fprintf(stderr, "Fail resolving symbol ftl_write.\n");
@@ -101,22 +118,31 @@ int main(int argc, char *argv[])
 
 	//printf("Trace file: %s\n", argv[1]);
 
+    print_ssd_config();
+
     init_vst();
 	done = 0;
+    traces = (struct trace_ent *)malloc(MAX_SIZE_TRACE * 
+            sizeof(struct trace_ent));
+    size_trace = load_trace(fp_trace, traces);
+    // TODO: better begin/end points
 	begin = clock();
 	ftl_open();
 	while (!done) {
-		//printf("write_bytes = %" PRIu64 "\n", write_bytes);
-		fseek(fp_trace, 0, SEEK_SET);
-		while (fscanf(fp_trace, "%lf %d %d %d %d", \
-			&time, &rsv, &lba, &sec_num, &rw) != EOF) {
+        for (int i = 0; i < size_trace; i++) {
+            lba = traces[i].lba;
+            sec_num = traces[i].sec_num;
+            rw = traces[i].rw;
 			lba += (trace_cnt * 1024); // offset
-			if (lba >= (NUM_LPAGES * SECTORS_PER_PAGE))
-				lba %= VST_SECTORS;
+			if (lba >= VST_NUM_SECTORS)
+				lba %= VST_NUM_SECTORS;
 			if (lba + sec_num >= VST_NUM_SECTORS)
 				sec_num = VST_NUM_SECTORS - lba - 1;
 			/* write */
 			if (rw == 0) {
+                #ifdef DEBUG
+                //printf("[DEBUG] W: %u/%u\n", lba, sec_num);
+                #endif
 				ftl_write(lba, sec_num);
 				write_bytes += (sec_num * VST_BYTES_PER_SECTOR);
 				if (write_bytes > bound) {
@@ -126,18 +152,67 @@ int main(int argc, char *argv[])
 			}
 			/* read */
 			else {
+                #ifdef DEBUG
+                //printf("[DEBUG] R: %u/%u\n", lba, sec_num);
+                #endif
 				ftl_read(lba, sec_num);
 				read_bytes += (sec_num * VST_BYTES_PER_SECTOR);
 			}
 		}
 		trace_cnt++;
+        #ifdef DEBUG
+        printf("trace_cnt = %d\n", trace_cnt);
+        #endif
 	}
 	ftl_flush();
 	end = clock();
 	succeed = 1;
-	fclose(fp_trace);
 
 	time_spent = (double)(end - begin);
+
+    print_statistic();
+
 	return 0;
+}
+
+static void print_ssd_config(void)
+{
+    printf("----------SSD Configuration----------\n");
+    printf("# banks: %d\n", VST_NUM_BANKS);
+    printf("# blocks: %d\n", VST_NUM_BLOCKS);
+    printf("# pages: %d\n", VST_NUM_PAGES);
+    printf("# sectors: %d\n", VST_NUM_SECTORS);
+    printf("# blocks per bank: %d\n", VST_BLOCKS_PER_BANK);
+    printf("# pages per block: %d\n", VST_PAGES_PER_BLOCK);
+    printf("# sectors per page: %d\n", VST_SECTORS_PER_PAGE);
+    printf("Sector size: %d\n", VST_BYTES_PER_SECTOR);
+    printf("DRAM base: 0x%x\n", VST_DRAM_BASE);
+    printf("DRAM size: %d\n", VST_DRAM_SIZE);
+    printf("----------SSD Configuration----------\n");
+}
+
+static void print_statistic(void)
+{
+    printf("----------Statistic Results----------\n");
+    printf("----------Statistic Results----------\n");
+}
+
+static int load_trace(FILE *fp_trace, struct trace_ent *traces)
+{
+	double time;
+	uint32_t rsv, lba, sec_num, rw;
+    int n = 0;
+
+    fseek(fp_trace, 0, SEEK_SET);
+    while (fscanf(fp_trace, "%lf %d %d %d %d", \
+        &time, &rsv, &lba, &sec_num, &rw) != EOF &&
+        n < MAX_SIZE_TRACE) {
+        traces[n].lba = lba;
+        traces[n].sec_num = sec_num;
+        traces[n].rw = rw;
+        n++;
+    }
+	fclose(fp_trace);
+    return n;
 }
 

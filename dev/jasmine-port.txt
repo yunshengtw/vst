@@ -59,3 +59,14 @@ Solution
 ftl.c include ftl.h
 ftl.h include jasmine.h
 jasmine no longer include ftl.h
+
+5. bulid_bad_blk_list
+---------------------
+Description
+-----------
+Function build_bad_blk_list() will test scan_list, which is set by the
+Jasmine installer, and cause all the bad block bit map set to 1.
+
+Solution
+--------
+Mask build_bad_blk_list
