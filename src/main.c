@@ -24,13 +24,20 @@ static void print_ssd_config(void);
 static void print_statistic(void);
 static int load_trace(FILE *fp_trace, struct trace_ent *traces);
 
-/* global variables */
+/* time spent */
+time_t begin, end;
 double time_spent;
+
+/* statistic results */
+extern uint64_t byte_write, byte_read;
+extern uint64_t cnt_flash_read, cnt_flash_write, cnt_flash_cb, cnt_flash_erase;
+
+/* misc */
 int trace_cnt;
-uint64_t write_bytes, read_bytes;
 int succeed;
 char *g_filename;
-time_t begin, end;
+
+/* unix getopt */
 extern char *optarg;
 extern int optind;
 
@@ -144,8 +151,8 @@ int main(int argc, char *argv[])
                 //printf("[DEBUG] W: %u/%u\n", lba, sec_num);
                 #endif
 				ftl_write(lba, sec_num);
-				write_bytes += (sec_num * VST_BYTES_PER_SECTOR);
-				if (write_bytes > bound) {
+				byte_write += (sec_num * VST_BYTES_PER_SECTOR);
+				if (byte_write > bound) {
 					done = 1;
 					break;
 				}
@@ -156,7 +163,7 @@ int main(int argc, char *argv[])
                 //printf("[DEBUG] R: %u/%u\n", lba, sec_num);
                 #endif
 				ftl_read(lba, sec_num);
-				read_bytes += (sec_num * VST_BYTES_PER_SECTOR);
+				byte_read += (sec_num * VST_BYTES_PER_SECTOR);
 			}
 		}
 		trace_cnt++;
@@ -194,6 +201,12 @@ static void print_ssd_config(void)
 static void print_statistic(void)
 {
     printf("----------Statistic Results----------\n");
+    printf("Total read (MB): %" PRIu64 "\n", byte_read / (1024 * 1024));
+    printf("Total write (MB): %" PRIu64 "\n", byte_write / (1024 * 1024));
+    printf("Total flash read (pages): %" PRIu64 "\n", cnt_flash_read);
+    printf("Total flash write (pages): %" PRIu64 "\n", cnt_flash_write);
+    printf("Total flash copyback (pages): %" PRIu64 "\n", cnt_flash_cb);
+    printf("Total flash erase (blocks): %" PRIu64 "\n", cnt_flash_erase);
     printf("----------Statistic Results----------\n");
 }
 

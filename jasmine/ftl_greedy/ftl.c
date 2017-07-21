@@ -366,6 +366,9 @@ void ftl_read(UINT32 const lba, UINT32 const num_sectors)
             // Send 0xFF...FF to host when the host request to read the sector that has never been written.
             // In old version, for example, if the host request to read unwritten sector 0 after programming in sector 1, Jasmine would send 0x00...00 to host.
             // However, if the host already wrote to sector 1, Jasmine would send 0xFF...FF to host when host request to read sector 0. (ftl_read() in ftl_xxx/ftl.c)
+            #ifdef VST
+            fake_dram_op();
+            #endif
 			mem_set_dram(RD_BUF_PTR(g_ftl_read_buf_id) + sect_offset*BYTES_PER_SECTOR,
                          0xFFFFFFFF, num_sectors_to_read*BYTES_PER_SECTOR);
 

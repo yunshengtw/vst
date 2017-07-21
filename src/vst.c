@@ -30,7 +30,8 @@ u8 __attribute__((section (".dram"))) dram[VST_DRAM_SIZE];
 static flash_t flash;
 
 /* statistic results */
-
+uint64_t byte_write, byte_read;
+uint64_t cnt_flash_read, cnt_flash_write, cnt_flash_cb, cnt_flash_erase;
 
 /* internal routines */
 static void init_flash(void);
@@ -48,6 +49,7 @@ void vst_read_page(u32 const bank, u32 const blk, u32 const page,
                u32 const sect, u32 const n_sect, u64 const dram_addr,
                u32 const lpn, u8 const is_host_data)
 {
+    cnt_flash_read++;
     u32 start, length;
 
     start = sect * VST_BYTES_PER_SECTOR;
@@ -90,6 +92,7 @@ void vst_write_page(u32 const bank, u32 const blk, u32 const page,
                 u32 const sect, u32 const n_sect, u64 const dram_addr,
                 u32 const lpn, u8 const is_host_data)
 {
+    cnt_flash_write++;
     #ifdef DEBUG
     //printf("[DEBUG] bank = %u blk = %u page = %u\n", bank, blk, page);
     #endif
@@ -131,6 +134,7 @@ void vst_write_page(u32 const bank, u32 const blk, u32 const page,
 void vst_copyback_page(u32 const bank, u32 const blk_src, u32 const page_src,
                    u32 const blk_dst, u32 const page_dst)
 {
+    cnt_flash_cb++;
     #ifdef DEBUG
     //printf("[DEBUG] src = (%u, %u) dst = (%u, %u)\n", 
     //        blk_src, page_src, blk_dst, page_dst);
@@ -159,6 +163,7 @@ void vst_copyback_page(u32 const bank, u32 const blk_src, u32 const page_src,
 
 void vst_erase_block(u32 const bank, u32 const blk)
 {
+    cnt_flash_erase++;
     u32 i;
 
     for (i = 0; i < VST_PAGES_PER_BLOCK; i++) {
@@ -368,6 +373,12 @@ static void init_dram(void)
 
 static void init_statistic(void)
 {
+    byte_write = 0;
+    byte_read = 0;
+    cnt_flash_read = 0;
+    cnt_flash_write = 0;
+    cnt_flash_cb = 0;
+    cnt_flash_erase = 0;
 }
 
 static void report_bug(char *msg)

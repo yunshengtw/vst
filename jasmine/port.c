@@ -128,6 +128,17 @@ UINT32 _mem_search_min_max(UINT64 const addr, UINT32 const unit, UINT32 const si
     return 0;
 }
 
+void _mem_set_sram(UINT64 const addr, UINT32 const val, UINT32 bytes)
+{
+    vst_memset(addr, val, bytes);
+}
+
+void _mem_set_dram(UINT64 const addr, UINT32 const val, UINT32 bytes)
+{
+    if (!is_host_data_dram)
+        vst_memset(addr, val, bytes);
+}
+
 /* dummy functions */
 UINT32 disable_irq(void)
 {
