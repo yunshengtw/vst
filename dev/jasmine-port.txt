@@ -70,3 +70,14 @@ Jasmine installer, and cause all the bad block bit map set to 1.
 Solution
 --------
 Mask build_bad_blk_list
+
+6. disable 2-plane mode
+-----------------------
+Description
+-----------
+By default, Jasmine enable 2-plane mode, but FTLburn disable 2-plane mode.
+
+Solution
+--------
+In jasmine.h Line 27, modify OPTION_2_PLANE to 1
+

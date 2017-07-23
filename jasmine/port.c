@@ -112,6 +112,11 @@ void nand_block_erase(UINT32 const bank, UINT32 const vblock)
     vst_erase_block(bank, vblock);
 }
 
+void nand_block_erase_sync(UINT32 const bank, UINT32 const vblock)
+{
+    vst_erase_block(bank, vblock);
+}
+
 // TODO: move all macro porting to wrapper porting for mem ops
 void _mem_copy(const UINT64 dst, const UINT64 src, UINT32 const bytes)
 {

@@ -123,7 +123,7 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	//printf("Trace file: %s\n", argv[1]);
+	printf("Trace file: %s\n", g_filename);
 
     print_ssd_config();
 
@@ -141,10 +141,10 @@ int main(int argc, char *argv[])
             sec_num = traces[i].sec_num;
             rw = traces[i].rw;
 			lba += (trace_cnt * 1024); // offset
-			if (lba >= VST_NUM_SECTORS)
-				lba %= VST_NUM_SECTORS;
-			if (lba + sec_num >= VST_NUM_SECTORS)
-				sec_num = VST_NUM_SECTORS - lba - 1;
+			if (lba > VST_MAX_LBA)
+				lba %= (VST_MAX_LBA + 1);
+			if (lba + sec_num > VST_MAX_LBA + 1)
+				sec_num = VST_MAX_LBA + 1 - lba;
 			/* write */
 			if (rw == 0) {
                 #ifdef DEBUG
@@ -192,6 +192,7 @@ static void print_ssd_config(void)
     printf("# blocks per bank: %d\n", VST_BLOCKS_PER_BANK);
     printf("# pages per block: %d\n", VST_PAGES_PER_BLOCK);
     printf("# sectors per page: %d\n", VST_SECTORS_PER_PAGE);
+    printf("Max LBA: %d\n", VST_MAX_LBA);
     printf("Sector size: %d\n", VST_BYTES_PER_SECTOR);
     printf("DRAM base: 0x%x\n", VST_DRAM_BASE);
     printf("DRAM size: %d\n", VST_DRAM_SIZE);

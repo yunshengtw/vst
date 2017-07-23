@@ -2,3 +2,5 @@
 *.so
 vst-jasmine*
 traces/
+*.out
+*.diff

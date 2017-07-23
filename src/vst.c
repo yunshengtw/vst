@@ -52,6 +52,10 @@ void vst_read_page(u32 const bank, u32 const blk, u32 const page,
     cnt_flash_read++;
     u32 start, length;
 
+    assert(bank < VST_NUM_BANKS);
+    assert(blk < VST_BLOCKS_PER_BANK);
+    assert(page < VST_PAGES_PER_BLOCK);
+
     start = sect * VST_BYTES_PER_SECTOR;
     length = n_sect * VST_BYTES_PER_SECTOR;
 
@@ -98,6 +102,10 @@ void vst_write_page(u32 const bank, u32 const blk, u32 const page,
     #endif
     u32 start, length;
 
+    assert(bank < VST_NUM_BANKS);
+    assert(blk < VST_BLOCKS_PER_BANK);
+    assert(page < VST_PAGES_PER_BLOCK);
+
     start = sect * VST_BYTES_PER_SECTOR;
     length = n_sect * VST_BYTES_PER_SECTOR;
 
@@ -139,6 +147,14 @@ void vst_copyback_page(u32 const bank, u32 const blk_src, u32 const page_src,
     //printf("[DEBUG] src = (%u, %u) dst = (%u, %u)\n", 
     //        blk_src, page_src, blk_dst, page_dst);
     #endif
+
+    assert(bank < VST_NUM_BANKS);
+    assert(blk_src < VST_BLOCKS_PER_BANK);
+    assert(page_src < VST_PAGES_PER_BLOCK);
+    assert(blk_dst < VST_BLOCKS_PER_BANK);
+    assert(page_dst < VST_PAGES_PER_BLOCK);
+
+
     if (!get_page(bank, blk_dst, page_dst).is_erased) {
         char msg[200];
         sprintf(msg, "in-place write to dirty page, "

@@ -188,7 +188,7 @@ void disable_interrupt(void);
 		}							       \
 	}
 #else
-	#define ASSERT(X)
+	#define ASSERT(X) assert((X))
 #endif
 
 #endif	// PROGRAM_INSTALLER
