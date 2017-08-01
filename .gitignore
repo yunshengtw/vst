@@ -4,3 +4,4 @@ vst-jasmine*
 traces/
 *.out
 *.diff
+*.err

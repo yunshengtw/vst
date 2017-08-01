@@ -203,6 +203,9 @@ static void build_bad_blk_list(void)
 	UINT32 bank, num_entries, result, vblk_offset;
 	scan_list_t* scan_list = (scan_list_t*) TEMP_BUF_ADDR;
 
+    #ifdef VST
+    real_dram_op();
+    #endif
 	mem_set_dram(BAD_BLK_BMP_ADDR, 0, BAD_BLK_BMP_BYTES);
 
 	disable_irq();
@@ -372,6 +375,9 @@ static void format(void)
     //----------------------------------------
     // initialize DRAM metadata
     //----------------------------------------
+    #ifdef VST
+    real_dram_op();
+    #endif
     mem_set_dram(PAGE_MAP_ADDR, 0, PAGE_MAP_BYTES);
     mem_set_dram(VCOUNT_ADDR, 0, VCOUNT_BYTES);
     mem_set_dram(VBLK_REGION_ADDR, 0, VBLK_REGION_BYTES); // init all region to 0

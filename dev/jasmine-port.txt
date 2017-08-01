@@ -56,9 +56,14 @@ These inclusions make vst-jasmine depends on a paticular FTL.
 
 Solution
 --------
+For greedy, dac and faster,
+jasmine.h no longer include ftl.h
 ftl.c include ftl.h
 ftl.h include jasmine.h
-jasmine no longer include ftl.h
+
+For faster only,
+shashtbl.c no longer include jasmine.h
+shashtbl.c include ftl.h
 
 5. bulid_bad_blk_list
 ---------------------
@@ -80,4 +85,15 @@ By default, Jasmine enable 2-plane mode, but FTLburn disable 2-plane mode.
 Solution
 --------
 In jasmine.h Line 27, modify OPTION_2_PLANE to 1
+
+7. shashtbl
+-----------
+Description
+-----------
+In shashtbl.c Line 155, find_flag is not defined if OPTION_ENABLE_ASSERT is not
+defined.
+
+Solution
+--------
+Also wrap Line 155 between ifdef-endif block.
 
