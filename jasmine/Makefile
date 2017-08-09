@@ -9,7 +9,7 @@ vst-jasmine: ../src/vst.c ../src/main.c
 	$(CC) $(CFLAGS) $^ $(LDFLAGS) -o $@
 
 vst-jasmine-dbg: ../src/vst.c ../src/main.c
-	$(CC) $(CFLAGS) -DDEBUG $^ $(LDFLAGS) -o $@
+	$(CC) $(CFLAGS) -DDEBUG -DREPORT_WARNING $^ $(LDFLAGS) -o $@
 
 clean:
 	rm vst-jasmine vst-jasmine-dbg

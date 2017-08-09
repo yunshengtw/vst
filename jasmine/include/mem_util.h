@@ -55,22 +55,22 @@ UINT32	_mem_search_equ(const void* const addr, UINT32 const unit, UINT32 const s
 UINT32 _mem_cmp_sram(const void* const addr1, const void* const addr2, const UINT32 bytes);
 UINT32 _mem_cmp_dram(const void* const addr1, const void* const addr2, const UINT32 bytes);
 
-#define read_dram_8(ADDR) vst_read_dram_8((UINT64)(ADDR))
-#define read_dram_16(ADDR) vst_read_dram_16((UINT64)(ADDR))
-#define read_dram_32(ADDR) vst_read_dram_32((UINT64)(ADDR))
-#define write_dram_8(ADDR, VAL) vst_write_dram_8((UINT64)(ADDR), (VAL))
-#define write_dram_16(ADDR, VAL) vst_write_dram_16((UINT64)(ADDR), (VAL))
-#define write_dram_32(ADDR, VAL) vst_write_dram_32((UINT64)(ADDR), (VAL))
+#define read_dram_8(ADDR) _read_dram_8((UINT64)(ADDR))
+#define read_dram_16(ADDR) _read_dram_16((UINT64)(ADDR))
+#define read_dram_32(ADDR) _read_dram_32((UINT64)(ADDR))
+#define write_dram_8(ADDR, VAL) _write_dram_8((UINT64)(ADDR), (UINT64)(VAL))
+#define write_dram_16(ADDR, VAL) _write_dram_16((UINT64)(ADDR), (UINT64)(VAL))
+#define write_dram_32(ADDR, VAL) _write_dram_32((UINT64)(ADDR), (UINT64)(VAL))
 #define set_bit_dram(BASE_ADDR, BIT_OFFSET) vst_set_bit_dram((UINT64)BASE_ADDR, BIT_OFFSET)
 #define clr_bit_dram(BASE_ADDR, BIT_OFFSET) vst_clr_bit_dram((UINT64)BASE_ADDR, BIT_OFFSET)
 #define tst_bit_dram(BASE_ADDR, BIT_OFFSET) vst_tst_bit_dram((UINT64)BASE_ADDR, BIT_OFFSET)
 
-UINT8	_read_dram_8(UINT32 const addr);
-UINT16	_read_dram_16(UINT32 const addr);
-UINT32	_read_dram_32(UINT32 const addr);
-void	_write_dram_8(UINT32 const addr, UINT8 const val);
-void	_write_dram_16(UINT32 const addr, UINT16 const val);
-void	_write_dram_32(UINT32 const addr, UINT32 const val);
+UINT64	_read_dram_8(UINT64 const addr);
+UINT64	_read_dram_16(UINT64 const addr);
+UINT64	_read_dram_32(UINT64 const addr);
+void	_write_dram_8(UINT64 const addr, UINT64 const val);
+void	_write_dram_16(UINT64 const addr, UINT64 const val);
+void	_write_dram_32(UINT64 const addr, UINT64 const val);
 void	_set_bit_dram(UINT32 const base_addr, UINT32 const bit_offset);
 void	_clr_bit_dram(UINT32 const base_addr, UINT32 const bit_offset);
 BOOL32	_tst_bit_dram(UINT32 const base_addr, UINT32 const bit_offset);

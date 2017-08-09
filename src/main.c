@@ -33,7 +33,7 @@ extern uint64_t byte_write, byte_read;
 extern uint64_t cnt_flash_read, cnt_flash_write, cnt_flash_cb, cnt_flash_erase;
 
 /* misc */
-int trace_cnt;
+int trace_cnt, req_id;
 int succeed;
 char *g_filename;
 
@@ -165,6 +165,10 @@ int main(int argc, char *argv[])
 				ftl_read(lba, sec_num);
 				byte_read += (sec_num * VST_BYTES_PER_SECTOR);
 			}
+            #ifdef DEBUG
+            req_id = i;
+            printf("req id = %d\n", req_id);
+            #endif
 		}
 		trace_cnt++;
         #ifdef DEBUG

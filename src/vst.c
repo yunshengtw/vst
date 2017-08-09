@@ -5,6 +5,8 @@
 
 #include "vst.h"
 
+#define VST_UNKNOWN_CONTENT ((u32)-1)
+
 typedef struct flash_page {
     u8 *data;
     u8 is_erased;
@@ -38,6 +40,9 @@ static void init_flash(void);
 static void init_dram(void);
 static void init_statistic(void);
 static void report_bug(char *msg);
+#ifdef REPORT_WARNING
+static void report_warning(char *msg);
+#endif
 
 /* macro functions */
 #define get_page(bank, blk, page) \
@@ -68,7 +73,9 @@ void vst_read_page(u32 const bank, u32 const blk, u32 const page,
     }
 
     if (is_host_data) {
+        // TODO: optimization: reduce memory accesses
         if (!get_page(bank, blk, page).is_erased && 
+            get_page(bank, blk, page).lpn != VST_UNKNOWN_CONTENT &&
             lpn != get_page(bank, blk, page).lpn) {
             char msg[200];
             sprintf(msg, "LPN unmatched, host lpn = %u previous lpn = %u",
@@ -154,7 +161,6 @@ void vst_copyback_page(u32 const bank, u32 const blk_src, u32 const page_src,
     assert(blk_dst < VST_BLOCKS_PER_BANK);
     assert(page_dst < VST_PAGES_PER_BLOCK);
 
-
     if (!get_page(bank, blk_dst, page_dst).is_erased) {
         char msg[200];
         sprintf(msg, "in-place write to dirty page, "
@@ -169,6 +175,12 @@ void vst_copyback_page(u32 const bank, u32 const blk_src, u32 const page_src,
     get_page(bank, blk_dst, page_dst).is_erased = 0;
     get_page(bank, blk_dst, page_dst).lpn =
         get_page(bank, blk_src, page_src).lpn;
+
+    // TODO: maybe remove this
+    #ifdef REPORT_WARNING
+    if (get_page(bank, blk_src, page_src).is_erased == 1)
+        report_warning("copyback a clean page");
+    #endif
 
     u8 *data = get_page(bank, blk_src, page_src).data;
     if (data != NULL) 
@@ -189,6 +201,7 @@ void vst_erase_block(u32 const bank, u32 const blk)
             free(data);
             get_page(bank, blk, i).data = NULL;
         }
+        get_page(bank, blk, i).lpn = VST_UNKNOWN_CONTENT;
     }
 }
 
@@ -372,6 +385,7 @@ static void init_flash(void)
             for (k = 0; k < VST_PAGES_PER_BLOCK; k++) {
                 get_page(i, j, k).data = NULL;
                 get_page(i, j, k).is_erased = 1;
+                get_page(i, j, k).lpn = VST_UNKNOWN_CONTENT;
             }
         }
     }
@@ -382,6 +396,7 @@ static void init_dram(void)
 {
     u32 i;
 
+    // TODO: opt with memset
     for (i = 0; i < VST_DRAM_SIZE; i++)
         dram[i] = 0;
     printf("[INFO] DRAM initialized\n");
@@ -399,6 +414,13 @@ static void init_statistic(void)
 
 static void report_bug(char *msg)
 {
-    printf("Bug found: %s\n", msg);
+    printf("[Bug] %s\n", msg);
 }
+
+#ifdef REPORT_WARNING
+static void report_warning(char *msg)
+{
+    printf("[Warning] %s\n", msg);
+}
+#endif
 

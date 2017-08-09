@@ -97,3 +97,14 @@ Solution
 --------
 Also wrap Line 155 between ifdef-endif block.
 
+8. shashtbl.c
+-------------
+Description
+-----------
+shashtbl.c Line 76, 118 cast tnode to UINT32, which incurs "cast from pointer to
+integer of different size" warning.
+
+Solution
+--------
+Line 76, add "ifdef VST" block
+Line 118, remove "(UINT32)"

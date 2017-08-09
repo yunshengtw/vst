@@ -1624,15 +1624,6 @@ static void full_merge(UINT32 const bank)
         UINT32 data_lpn = g_misc_meta[bank].lpn_list_of_vt_isol_blk[vt_log_lpn % PAGES_PER_BLK];
 
         if (shashtbl_get(bank, data_lpn) != vt_log_lpn) {
-            if ((vt_log_lpn % PAGES_PER_BLK) == (PAGES_PER_BLK - 2)) {
-                UINT32 isol_lbn = get_vt_isol_lpn(bank) / PAGES_PER_BLK;
-                UINT32 isol_vbn = get_isol_vbn(bank, isol_lbn);
-                UINT32 free_vbn = get_free_vbn(bank);
-
-                dec_full_isol_blk_cnt(bank);
-                inc_vt_isol_lpn(bank);
-                set_isol_vbn(bank, isol_lbn, free_vbn);
-            }
             return;
         }
     }
