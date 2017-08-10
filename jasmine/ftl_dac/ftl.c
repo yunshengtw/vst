@@ -494,10 +494,10 @@ void ftl_flush(void)
 {
     /* ptimer_start(); */
     // flush region & block age information
-    flush_dram_metadata_into_mapblk(1, VBLK_AGE_ADDR, VBLK_AGE_BYTES + VBLK_REGION_BYTES);
+    //flush_dram_metadata_into_mapblk(1, VBLK_AGE_ADDR, VBLK_AGE_BYTES + VBLK_REGION_BYTES);
     // flush page mapping table
-    flush_dram_metadata_into_mapblk(0, PAGE_MAP_ADDR, PAGE_MAP_BYTES);
-    flush_misc_metadata();
+    //flush_dram_metadata_into_mapblk(0, PAGE_MAP_ADDR, PAGE_MAP_BYTES);
+    //flush_misc_metadata();
     /* ptimer_stop_and_uart_print(); */
 }
 // logging misc + vcount metadata
@@ -1176,6 +1176,7 @@ static UINT32 assign_new_write_vpn(UINT32 const bank, UINT32 const lpn, UINT32 c
     write_vpn = get_cur_write_vpn_of_region(bank, new_region_num);
     vblock    = write_vpn / PAGES_PER_BLK;
 
+    UINT32 is_new_block = 0;
     // NOTE: if next new write page's offset is
     // the last page offset of vblock (i.e. PAGES_PER_BLK - 1),
     if ((write_vpn % PAGES_PER_BLK) == (PAGES_PER_BLK - 2)) {
@@ -1184,6 +1185,7 @@ static UINT32 assign_new_write_vpn(UINT32 const bank, UINT32 const lpn, UINT32 c
         // thus, we persistenly write a lpn list into last page of vblock.
         ASSERT(get_vcount(bank, vblock) == VC_ACTIVE);
 
+        is_new_block = 1;
         #ifdef VST
         real_dram_op();
         #endif
@@ -1223,7 +1225,8 @@ static UINT32 assign_new_write_vpn(UINT32 const bank, UINT32 const lpn, UINT32 c
         }while (get_vcount(bank, vblock) != VC_FREE);
     }
     // write page -> next block
-    if (vblock != (write_vpn / PAGES_PER_BLK)) {
+    //if (vblock != (write_vpn / PAGES_PER_BLK)) {
+    if (is_new_block) {
         write_vpn = vblock * PAGES_PER_BLK;
         ASSERT(get_vcount(bank, vblock) != VC_MAX || get_vcount(bank, vblock) != VC_ACTIVE);
         set_region_num(bank, vblock, new_region_num);

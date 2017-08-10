@@ -1,5 +1,5 @@
 #!/bin/bash
-FTL=greedy
+FTL=faster
 OP_FILE=${FTL}.out
 
 rm ${OP_FILE}
