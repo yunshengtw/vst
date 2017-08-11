@@ -34,7 +34,7 @@ extern uint64_t cnt_flash_read, cnt_flash_write, cnt_flash_cb, cnt_flash_erase;
 
 /* misc */
 int trace_cnt, req_id;
-int succeed;
+int pass = 0;
 char *g_filename;
 
 /* unix getopt */
@@ -126,6 +126,7 @@ int main(int argc, char *argv[])
 	printf("Trace file: %s\n", g_filename);
 
     print_ssd_config();
+    atexit(print_statistic);
 
     init_vst();
 	done = 0;
@@ -177,11 +178,11 @@ int main(int argc, char *argv[])
 	}
 	ftl_flush();
 	end = clock();
-	succeed = 1;
+	pass = 1;
 
 	time_spent = (double)(end - begin);
 
-    print_statistic();
+    //print_statistic();
 
 	return 0;
 }
@@ -206,6 +207,10 @@ static void print_ssd_config(void)
 static void print_statistic(void)
 {
     printf("----------Statistic Results----------\n");
+    if (pass)
+        printf("Pass!\n");
+    else
+        printf("Fail!\n");
     printf("Total read (MB): %" PRIu64 "\n", byte_read / (1024 * 1024));
     printf("Total write (MB): %" PRIu64 "\n", byte_write / (1024 * 1024));
     printf("Total flash read (pages): %" PRIu64 "\n", cnt_flash_read);

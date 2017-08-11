@@ -188,7 +188,13 @@ void disable_interrupt(void);
 		}							       \
 	}
 #else
-	#define ASSERT(X) assert((X))
+	#define ASSERT(X)   \
+    {                   \
+        if (!(X)) {     \
+            printf("%s:%d: Assertion failed.\n", __FILE__, __LINE__); \
+            exit(1);    \
+        }               \
+    }
 #endif
 
 #endif	// PROGRAM_INSTALLER
