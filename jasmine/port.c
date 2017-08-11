@@ -144,32 +144,32 @@ void _mem_set_dram(UINT64 const addr, UINT32 const val, UINT32 bytes)
         vst_memset(addr, val, bytes);
 }
 
-UINT64 _read_dram_8(UINT64 const addr)
+UINT8 _read_dram_8(UINT64 const addr)
 {
-    return (UINT64)vst_read_dram_8(addr);
+    return (UINT8)vst_read_dram_8(addr);
 }
 
-UINT64 _read_dram_16(UINT64 const addr)
+UINT16 _read_dram_16(UINT64 const addr)
 {
-    return (UINT64)vst_read_dram_16(addr);
+    return (UINT16)vst_read_dram_16(addr);
 }
 
-UINT64 _read_dram_32(UINT64 const addr)
+UINT32 _read_dram_32(UINT64 const addr)
 {
-    return (UINT64)vst_read_dram_32(addr);
+    return (UINT32)vst_read_dram_32(addr);
 }
 
-void _write_dram_8(UINT64 const addr, UINT64 const val)
+void _write_dram_8(UINT64 const addr, UINT8 const val)
 {
     vst_write_dram_8(addr, (UINT8)val);
 }
 
-void _write_dram_16(UINT64 const addr, UINT64 const val)
+void _write_dram_16(UINT64 const addr, UINT16 const val)
 {
     vst_write_dram_16(addr, (UINT16)val);
 }
 
-void _write_dram_32(UINT64 const addr, UINT64 const val)
+void _write_dram_32(UINT64 const addr, UINT32 const val)
 {
     vst_write_dram_32(addr, (UINT32)val);
 }
