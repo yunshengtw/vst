@@ -13,7 +13,7 @@
 #include "vst.h"
 #include "config.h"
 
-#define MAX_SIZE_TRACE 45746223
+#define MAX_SIZE_TRACE 168638965
 
 /* trace struct */
 struct trace_ent {
