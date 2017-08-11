@@ -219,38 +219,38 @@ void vst_erase_block(u32 const bank, u32 const blk)
 
 /* RAM APIs */
 // TODO: assert dram limit
-u8 vst_read_dram_8(u64 const addr)
+inline u8 vst_read_dram_8(u64 const addr)
 {
     return *(u8 *)addr;
 }
 
-u16 vst_read_dram_16(u64 const addr)
+inline u16 vst_read_dram_16(u64 const addr)
 {
     assert(!(addr & 1));
 
     return *(u16 *)addr;
 }
 
-u32 vst_read_dram_32(u64 const addr)
+inline u32 vst_read_dram_32(u64 const addr)
 {
     assert(!(addr & 3));
 
     return *(u32 *)addr;
 }
 
-void vst_write_dram_8(u64 const addr, u8 const val)
+inline void vst_write_dram_8(u64 const addr, u8 const val)
 {
     *(u8 *)addr = val;
 }
 
-void vst_write_dram_16(u64 const addr, u16 const val)
+inline void vst_write_dram_16(u64 const addr, u16 const val)
 {
     assert(!(addr & 1));
 
     *(u16 *)addr = val;
 }
 
-void vst_write_dram_32(u64 const addr, u32 const val)
+inline void vst_write_dram_32(u64 const addr, u32 const val)
 {
     assert(!(addr & 3));
 
