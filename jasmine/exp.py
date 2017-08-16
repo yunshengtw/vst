@@ -4,6 +4,14 @@ import re
 import sys
 import csv
 
+def extract_trace(f):
+    ls = []
+    for l in f:
+        if re.search('Trace file', l): 
+            ls.append(l.strip().split(' ')[2].split('/')[2].split('.')[0].split('-')[0])
+    f.seek(0)
+    return ls
+
 def extract_time(f):
     ls = []
     for l in f:
@@ -24,8 +32,16 @@ def extract_other(f, s, n):
     f.seek(0)
     return ls
 
-f = open(sys.argv[1], "r")
+if len(sys.argv) != 2:
+    print 'usage: ' + __file__ + ' <FTL>'
+    sys.exit(1)
 
+ftl = sys.argv[1]
+name_in = './output/' + ftl + '.out'
+name_out = './output/' + ftl + '.csv'
+f = open(name_in, "r")
+
+trace = extract_trace(f)
 total_read = extract_other(f, 'Total read', 3)
 total_write = extract_other(f, 'Total write', 3)
 time = extract_time(f)
@@ -34,9 +50,9 @@ nand_write = extract_other(f, 'Total flash write', 4)
 nand_copyback = extract_other(f, 'Total flash copyback', 4)
 nand_erase = extract_other(f, 'Total flash erase', 4)
 
-data = zip(total_read, total_write, time, nand_read, nand_write, nand_copyback, nand_erase)
+data = zip(trace, total_read, total_write, time, nand_read, nand_write, nand_copyback, nand_erase)
 
-with open(sys.argv[2], 'wb') as ofile:
+with open(name_out, 'wb') as ofile:
     wr = csv.writer(ofile)
     for row in data:
         wr.writerow(row)

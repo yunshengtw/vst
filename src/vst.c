@@ -195,10 +195,13 @@ void vst_copyback_page(u32 const bank, u32 const blk_src, u32 const page_src,
     #endif
 
     u8 *data = get_page(bank, blk_src, page_src).data;
-    if (data != NULL) 
+    if (data != NULL) {
+        get_page(bank, blk_dst, page_dst).data = 
+                (u8 *)malloc(VST_BYTES_PER_PAGE * sizeof(u8));
         memcpy(get_page(bank, blk_dst, page_dst).data, 
                get_page(bank, blk_src, page_src).data, 
                VST_BYTES_PER_PAGE);
+    }
 }
 
 void vst_erase_block(u32 const bank, u32 const blk)
