@@ -142,8 +142,10 @@ int main(int argc, char *argv[])
             sec_num = traces[i].sec_num;
             rw = traces[i].rw;
 			lba += (trace_cnt * 1024); // offset
-			if (lba > VST_MAX_LBA)
+			if (lba > VST_MAX_LBA) {
 				lba %= (VST_MAX_LBA + 1);
+                traces[i].lba = lba;
+            }
 			if (lba + sec_num > VST_MAX_LBA + 1)
 				sec_num = VST_MAX_LBA + 1 - lba;
 			/* write */
@@ -222,13 +224,13 @@ static void print_statistic(void)
 
 static int load_trace(FILE *fp_trace, struct trace_ent *traces)
 {
-	double time;
+	char buf[64];
 	uint32_t rsv, lba, sec_num, rw;
     int n = 0;
 
     fseek(fp_trace, 0, SEEK_SET);
-    while (fscanf(fp_trace, "%lf %d %d %d %d", \
-        &time, &rsv, &lba, &sec_num, &rw) != EOF &&
+    while (fscanf(fp_trace, "%s %d %d %d %d", 
+        buf, &rsv, &lba, &sec_num, &rw) != EOF &&
         n < MAX_SIZE_TRACE) {
         traces[n].lba = lba;
         traces[n].sec_num = sec_num;
