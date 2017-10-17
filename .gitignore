@@ -1,7 +1,8 @@
 *.swp
 *.so
-vst-jasmine*
-traces/
 *.out
 *.diff
 *.err
+vst-jasmine*
+vst-vanilla*
+traces/
