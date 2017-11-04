@@ -28,15 +28,13 @@ extern UINT8 g_temp_mem[BYTES_PER_SECTOR];	// scratch pad
 // memory utility functions
 //////////////////////////////
 
-#include "vst.h"
-// TODO: bridge to VST
 #define mem_set_sram(ADDR, VAL, BYTES)                  _mem_set_sram((UINT64)(ADDR), (UINT32)(VAL), (UINT32)(BYTES))
 #define mem_set_dram(ADDR, VAL, BYTES)                  _mem_set_dram((UINT64)(ADDR), (UINT32)(VAL), (UINT32)(BYTES))
 #define mem_copy(DST, SRC, BYTES)                       _mem_copy((UINT64)(DST), (UINT64)SRC, (BYTES))
 #define mem_bmp_find_sram(BMP, BYTES, VAL)				_mem_bmp_find_sram((void*) (BMP), (UINT32) (BYTES), (UINT32) (VAL))
 #define mem_bmp_find_dram(BMP, BYTES, VAL)				_mem_bmp_find_dram((void*) (BMP), (UINT32) (BYTES), (UINT32) (VAL))
 #define mem_search_min_max(ADDR, UNIT, SIZE, CMD)		_mem_search_min_max((UINT64)(ADDR), (UINT32) (UNIT), (UINT32) (SIZE), (UINT32) (CMD))
-#define mem_search_equ(ADDR, UNIT, SIZE, CMD, VAL)		vst_mem_search_equ((UINT64)(ADDR), (UINT32) (UNIT), (UINT32) (SIZE), (UINT32) (VAL))
+#define mem_search_equ(ADDR, UNIT, SIZE, CMD, VAL)		_mem_search_equ((UINT64)(ADDR), (UINT32) (UNIT), (UINT32) (SIZE), (UINT32) (CMD), (UINT32) (VAL))
 #define mem_search_equ_sram(ADDR, UNIT, SIZE, VAL)		mem_search_equ(ADDR, UNIT, SIZE, MU_CMD_SEARCH_EQU_SRAM, VAL)
 #define mem_search_equ_dram(ADDR, UNIT, SIZE, VAL)		mem_search_equ(ADDR, UNIT, SIZE, MU_CMD_SEARCH_EQU_DRAM, VAL)
 
@@ -50,7 +48,7 @@ void	_mem_copy(const UINT64 dst, const UINT64 src, UINT32 const bytes);
 UINT32	_mem_bmp_find_sram(const void* const bitmap, UINT32 const bytes, UINT32 const val);
 UINT32	_mem_bmp_find_dram(const void* const bitmap, UINT32 const bytes, UINT32 const val);
 UINT32	_mem_search_min_max(const UINT64 addr, UINT32 const unit, UINT32 const size, UINT32 const cmd);
-UINT32	_mem_search_equ(const void* const addr, UINT32 const unit, UINT32 const size, UINT32 const cmd, UINT32 const val);
+UINT32	_mem_search_equ(const UINT64 const addr, UINT32 const unit, UINT32 const size, UINT32 const cmd, UINT32 const val);
 
 UINT32 _mem_cmp_sram(const void* const addr1, const void* const addr2, const UINT32 bytes);
 UINT32 _mem_cmp_dram(const void* const addr1, const void* const addr2, const UINT32 bytes);
@@ -61,9 +59,9 @@ UINT32 _mem_cmp_dram(const void* const addr1, const void* const addr2, const UIN
 #define write_dram_8(ADDR, VAL) _write_dram_8((UINT64)(ADDR), (UINT8)(VAL))
 #define write_dram_16(ADDR, VAL) _write_dram_16((UINT64)(ADDR), (UINT16)(VAL))
 #define write_dram_32(ADDR, VAL) _write_dram_32((UINT64)(ADDR), (UINT32)(VAL))
-#define set_bit_dram(BASE_ADDR, BIT_OFFSET) vst_set_bit_dram((UINT64)BASE_ADDR, BIT_OFFSET)
-#define clr_bit_dram(BASE_ADDR, BIT_OFFSET) vst_clr_bit_dram((UINT64)BASE_ADDR, BIT_OFFSET)
-#define tst_bit_dram(BASE_ADDR, BIT_OFFSET) vst_tst_bit_dram((UINT64)BASE_ADDR, BIT_OFFSET)
+#define set_bit_dram(BASE_ADDR, BIT_OFFSET) _set_bit_dram((UINT64)BASE_ADDR, (UINT32)BIT_OFFSET)
+#define clr_bit_dram(BASE_ADDR, BIT_OFFSET) _clr_bit_dram((UINT64)BASE_ADDR, (UINT32)BIT_OFFSET)
+#define tst_bit_dram(BASE_ADDR, BIT_OFFSET) _tst_bit_dram((UINT64)BASE_ADDR, (UINT32)BIT_OFFSET)
 
 UINT8	_read_dram_8(UINT64 const addr);
 UINT16	_read_dram_16(UINT64 const addr);
@@ -71,9 +69,9 @@ UINT32	_read_dram_32(UINT64 const addr);
 void	_write_dram_8(UINT64 const addr, UINT8 const val);
 void	_write_dram_16(UINT64 const addr, UINT16 const val);
 void	_write_dram_32(UINT64 const addr, UINT32 const val);
-void	_set_bit_dram(UINT32 const base_addr, UINT32 const bit_offset);
-void	_clr_bit_dram(UINT32 const base_addr, UINT32 const bit_offset);
-BOOL32	_tst_bit_dram(UINT32 const base_addr, UINT32 const bit_offset);
+void	_set_bit_dram(UINT64 const base_addr, UINT32 const bit_offset);
+void	_clr_bit_dram(UINT64 const base_addr, UINT32 const bit_offset);
+BOOL32	_tst_bit_dram(UINT64 const base_addr, UINT32 const bit_offset);
 
 #define set_bit_sram(BITMAP, OFFSET)	*(((UINT8*)(BITMAP) + (OFFSET)/8)) |= 1 << ((OFFSET) % 8)
 #define clr_bit_sram(BITMAP, OFFSET)	*(((UINT8*)(BITMAP) + (OFFSET)/8)) &= ~(1 << ((OFFSET) % 8))

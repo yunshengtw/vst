@@ -177,24 +177,19 @@ void enable_fiq(void);
 void enable_interrupt(void);
 void disable_interrupt(void);
 
+#include <stdio.h>
+#include <stdlib.h>
 #if OPTION_ENABLE_ASSERT
 	#define ASSERT(X)				       \
 	{								       \
 		if (!(X))					       \
 		{                                  \
-            uart_printf("assertion fail: %s, line# %d", __FILE__, __LINE__); \
-            led_blink();                   \
-			while (1);				       \
+            printf("assertion fail: %s, line# %d\n", __FILE__, __LINE__); \
+            exit(1);                       \
 		}							       \
 	}
 #else
-	#define ASSERT(X)   \
-    {                   \
-        if (!(X)) {     \
-            printf("%s:%d: Assertion failed.\n", __FILE__, __LINE__); \
-            exit(1);    \
-        }               \
-    }
+	#define ASSERT(X) 
 #endif
 
 #endif	// PROGRAM_INSTALLER

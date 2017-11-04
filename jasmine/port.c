@@ -133,6 +133,11 @@ UINT32 _mem_search_min_max(UINT64 const addr, UINT32 const unit, UINT32 const si
     return 0;
 }
 
+UINT32  _mem_search_equ(const UINT64 const addr, UINT32 const unit, UINT32 const size, UINT32 const cmd, UINT32 const val)
+{
+    return vst_mem_search_equ(addr, unit, size, val);
+}
+
 void _mem_set_sram(UINT64 const addr, UINT32 const val, UINT32 bytes)
 {
     vst_memset(addr, val, bytes);
@@ -172,6 +177,21 @@ void _write_dram_16(UINT64 const addr, UINT16 const val)
 void _write_dram_32(UINT64 const addr, UINT32 const val)
 {
     vst_write_dram_32(addr, (UINT32)val);
+}
+
+void _set_bit_dram(UINT64 const base_addr, UINT32 const bit_offset)
+{
+    vst_set_bit_dram(base_addr, bit_offset);
+}
+
+void _clr_bit_dram(UINT64 const base_addr, UINT32 const bit_offset)
+{
+    vst_clr_bit_dram(base_addr, bit_offset);
+}
+
+BOOL32 _tst_bit_dram(UINT64 const base_addr, UINT32 const bit_offset)
+{
+    return vst_tst_bit_dram(base_addr, bit_offset);
 }
 
 /* dummy functions */

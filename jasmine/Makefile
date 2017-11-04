@@ -4,6 +4,7 @@ CFLAGS = -std=c99 -g -O3 -Wall -rdynamic -I./ -I../src -I./include -DVST
 LDFLAGS = -ldl -T ld_script
 
 all: vst-jasmine vst-jasmine-dbg
+.PHONY: all
 
 vst-jasmine: ../src/vst.c ../src/main.c
 	$(CC) $(CFLAGS) $^ $(LDFLAGS) -o $@
@@ -13,3 +14,13 @@ vst-jasmine-dbg: ../src/vst.c ../src/main.c
 
 clean:
 	rm vst-jasmine vst-jasmine-dbg
+.PHONY: clean
+
+# build FTL shared objects
+FTL = greedy dac faster
+
+ftl: $(addsuffix /ftl.so, $(addprefix ftl_, $(FTL)))
+.PHONY: ftl
+
+ftl_%/ftl.so: ftl_%
+	make -C $(dir $@)
