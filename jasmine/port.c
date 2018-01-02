@@ -37,6 +37,27 @@ void fake_flash_op(UINT32 lpn)
     vst_lpn = lpn;
 }
 
+/* host operations */
+void vst_open_ftl(void)
+{
+    ftl_open();
+}
+
+void vst_read_sector(uint32_t lba, uint32_t n_sect)
+{
+    ftl_read(lba, n_sect);
+}
+
+void vst_write_sector(uint32_t lba, uint32_t n_sect)
+{
+    ftl_write(lba, n_sect);
+}
+
+void vst_flush_cache(void)
+{
+    ftl_flush();
+}
+
 /* flash wrappers */
 void nand_page_read(UINT32 const bank, UINT32 const vblock, 
                     UINT32 const page_num, UINT32 const buf_addr)
@@ -57,7 +78,9 @@ void nand_page_ptread(UINT32 const bank, UINT32 const vblock,
 void nand_page_read_to_host(UINT32 const bank, UINT32 const vblock,
                            UINT32 const page_num)
 {
-    // TODO
+    vst_read_page(bank, vblock, page_num, 0, SECTORS_PER_PAGE,
+                  (UINT64)RD_BUF_PTR(g_ftl_read_buf_id),
+                  vst_lpn, is_host_data_flash);
 }
 
 void nand_page_ptread_to_host(UINT32 const bank, UINT32 const vblock, 
@@ -72,7 +95,8 @@ void nand_page_ptread_to_host(UINT32 const bank, UINT32 const vblock,
 void nand_page_program(UINT32 const bank, UINT32 const vblock, 
                        UINT32 const page_num, UINT32 const buf_addr)
 {
-    // TODO
+    vst_write_page(bank, vblock, page_num, 0, SECTORS_PER_PAGE,
+                   (UINT64)buf_addr, vst_lpn, is_host_data_flash);
 }
 
 void nand_page_ptprogram(UINT32 const bank, UINT32 const vblock, 
@@ -86,7 +110,9 @@ void nand_page_ptprogram(UINT32 const bank, UINT32 const vblock,
 void nand_page_program_from_host(UINT32 const bank, UINT32 const vblock, 
                                  UINT32 const page_num)
 {
-    // TODO
+    vst_write_page(bank, vblock, page_num, 0, SECTORS_PER_PAGE,
+                   (UINT64)WR_BUF_PTR(g_ftl_write_buf_id), 
+                   vst_lpn, is_host_data_flash);
 }
 
 void nand_page_ptprogram_from_host(UINT32 const bank, UINT32 const vblock, 
@@ -117,7 +143,6 @@ void nand_block_erase_sync(UINT32 const bank, UINT32 const vblock)
     vst_erase_block(bank, vblock);
 }
 
-// TODO: move all macro porting to wrapper porting for mem ops
 void _mem_copy(const UINT64 dst, const UINT64 src, UINT32 const bytes)
 {
     if (!is_host_data_dram)

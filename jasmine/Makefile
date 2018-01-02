@@ -13,7 +13,7 @@ vst-jasmine-dbg: ../src/vst.c ../src/main.c
 	$(CC) $(CFLAGS) -DDEBUG -DREPORT_WARNING $^ $(LDFLAGS) -o $@
 
 clean:
-	rm vst-jasmine vst-jasmine-dbg
+	rm -f vst-jasmine vst-jasmine-dbg
 .PHONY: clean
 
 # build FTL shared objects

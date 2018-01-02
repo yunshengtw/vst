@@ -51,10 +51,10 @@ int main(int argc, char *argv[])
 	uint64_t bound;
 	uint32_t lba, sec_num, rw;
     int size_trace;
-	void (*ftl_open)(void);
-	void (*ftl_read)(uint32_t const, uint32_t const);
-	void (*ftl_write)(uint32_t const, uint32_t const);
-	void (*ftl_flush)(void);
+	void (*vst_open_ftl)(void);
+	void (*vst_read_sector)(uint32_t const, uint32_t const);
+	void (*vst_write_sector)(uint32_t const, uint32_t const);
+	void (*vst_flush_cache)(void);
 	int done;
     struct trace_ent *traces;
 
@@ -91,35 +91,35 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	ftl_open = (void (*)(void))dlsym(handle, "ftl_open");
+	vst_open_ftl = (void (*)(void))dlsym(handle, "vst_open_ftl");
 	dl_err = dlerror();
 	if (dl_err != NULL) {
-		fprintf(stderr, "Fail resolving symbol ftl_open.\n");
+		fprintf(stderr, "Fail resolving symbol vst_open_ftl.\n");
 		return 1;
 	}
 
-	ftl_read = (void (*)(uint32_t const, uint32_t const))dlsym(
+	vst_read_sector = (void (*)(uint32_t const, uint32_t const))dlsym(
             handle, 
-            "ftl_read");
+            "vst_read_sector");
 	dl_err = dlerror();
 	if (dl_err != NULL) {
-		fprintf(stderr, "Fail resolving symbol ftl_read.\n");
+		fprintf(stderr, "Fail resolving symbol vst_read_sector.\n");
 		return 1;
 	}
 
-	ftl_write = (void (*)(uint32_t const, uint32_t const))dlsym(
+	vst_write_sector = (void (*)(uint32_t const, uint32_t const))dlsym(
             handle, 
-            "ftl_write");
+            "vst_write_sector");
 	dl_err = dlerror();
 	if (dl_err != NULL) {
-		fprintf(stderr, "Fail resolving symbol ftl_write.\n");
+		fprintf(stderr, "Fail resolving symbol vst_write_sector.\n");
 		return 1;
 	}
 
-	ftl_flush = (void (*)(void))dlsym(handle, "ftl_flush");
+	vst_flush_cache = (void (*)(void))dlsym(handle, "vst_flush_cache");
 	dl_err = dlerror();
 	if (dl_err != NULL) {
-		fprintf(stderr, "Fail resolving symbol ftl_flush.\n");
+		fprintf(stderr, "Fail resolving symbol vst_flush_cache.\n");
 		return 1;
 	}
 
@@ -135,7 +135,7 @@ int main(int argc, char *argv[])
     size_trace = load_trace(fp_trace, traces);
     // TODO: better begin/end points
 	begin = clock();
-	ftl_open();
+	vst_open_ftl();
 	while (!done) {
         for (int i = 0; i < size_trace; i++) {
             lba = traces[i].lba;
@@ -153,7 +153,7 @@ int main(int argc, char *argv[])
                 #ifdef DEBUG
                 //printf("[DEBUG] W: %u/%u\n", lba, sec_num);
                 #endif
-				ftl_write(lba, sec_num);
+				vst_write_sector(lba, sec_num);
 				byte_write += (sec_num * VST_BYTES_PER_SECTOR);
 				if (byte_write > bound) {
 					done = 1;
@@ -165,7 +165,7 @@ int main(int argc, char *argv[])
                 #ifdef DEBUG
                 //printf("[DEBUG] R: %u/%u\n", lba, sec_num);
                 #endif
-				ftl_read(lba, sec_num);
+				vst_read_sector(lba, sec_num);
 				byte_read += (sec_num * VST_BYTES_PER_SECTOR);
 			}
             #ifdef DEBUG
@@ -178,7 +178,7 @@ int main(int argc, char *argv[])
         printf("trace_cnt = %d\n", trace_cnt);
         #endif
 	}
-	ftl_flush();
+	vst_flush_cache();
 	end = clock();
 	pass = 1;
 
