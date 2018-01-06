@@ -4,7 +4,7 @@
  */
 
 #include "ftl.h"
-#include "vst.h"
+#include "vst-api.h"
 
 /* VST tags */
 static UINT8 is_host_data_dram;
