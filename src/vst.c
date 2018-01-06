@@ -7,21 +7,21 @@
 
 #define VST_UNKNOWN_CONTENT ((u32)-1)
 
-typedef struct flash_page {
+typedef struct {
     u8 *data;
     u8 is_erased;
     u32 lpn;
 } flash_page_t;
 
-typedef struct flash_block {
+typedef struct {
     flash_page_t pages[VST_PAGES_PER_BLOCK];
 } flash_block_t;
 
-typedef struct flash_bank {
+typedef struct {
     flash_block_t blocks[VST_BLOCKS_PER_BANK];
 } flash_bank_t;
 
-typedef struct flash_top {
+typedef struct {
     flash_bank_t banks[VST_NUM_BANKS];
 } flash_t;
 
@@ -32,8 +32,8 @@ u8 __attribute__((section (".dram"))) dram[VST_DRAM_SIZE];
 static flash_t flash;
 
 /* statistic results */
-uint64_t byte_write, byte_read;
-uint64_t cnt_flash_read, cnt_flash_write, cnt_flash_cb, cnt_flash_erase;
+u64 byte_write, byte_read;
+u64 cnt_flash_read, cnt_flash_write, cnt_flash_cb, cnt_flash_erase;
 
 /* internal routines */
 static void init_flash(void);
@@ -58,7 +58,7 @@ void vst_read_page(u32 const bank, u32 const blk, u32 const page,
     assert(blk < VST_BLOCKS_PER_BANK);
     assert(page < VST_PAGES_PER_BLOCK);
 
-    struct flash_page *page_ptr = &get_page(bank, blk, page);
+    flash_page_t *pp = &get_page(bank, blk, page);
 
     cnt_flash_read++;
     u32 start, length;
@@ -76,12 +76,12 @@ void vst_read_page(u32 const bank, u32 const blk, u32 const page,
 
     if (is_host_data) {
         // TODO: optimization: reduce memory accesses
-        if (!page_ptr->is_erased && 
-            page_ptr->lpn != VST_UNKNOWN_CONTENT &&
-            lpn != page_ptr->lpn) {
+        if (!pp->is_erased && 
+            pp->lpn != VST_UNKNOWN_CONTENT &&
+            lpn != pp->lpn) {
             char msg[200];
             sprintf(msg, "LPN unmatched, host lpn = %u previous lpn = %u",
-                lpn, page_ptr->lpn);
+                lpn, pp->lpn);
             report_bug(msg);
             assert(0);
         }
@@ -92,10 +92,10 @@ void vst_read_page(u32 const bank, u32 const blk, u32 const page,
         #endif
     } else {
         u8 *addr = (u8 *)dram_addr;
-        if (page_ptr->data == NULL) {
+        if (pp->data == NULL) {
             memset(addr, 0xff, length);
         } else {
-            u8 *data = page_ptr->data;
+            u8 *data = pp->data;
             memcpy(addr, &data[start], length);
         }
     }
@@ -109,7 +109,7 @@ void vst_write_page(u32 const bank, u32 const blk, u32 const page,
     assert(blk < VST_BLOCKS_PER_BANK);
     assert(page < VST_PAGES_PER_BLOCK);
 
-    struct flash_page *page_ptr = &get_page(bank, blk, page);
+    flash_page_t *pp = &get_page(bank, blk, page);
 
     cnt_flash_write++;
     #ifdef DEBUG
@@ -136,7 +136,7 @@ void vst_write_page(u32 const bank, u32 const blk, u32 const page,
         assert(0);
     }
 
-    if (!page_ptr->is_erased) {
+    if (!pp->is_erased) {
         char msg[200];
         sprintf(msg, "in-place write to dirty page, "
             "bank = %u " 
@@ -147,14 +147,14 @@ void vst_write_page(u32 const bank, u32 const blk, u32 const page,
         assert(0);
     }
 
-    page_ptr->is_erased = 0;
+    pp->is_erased = 0;
     if (is_host_data) {
-        page_ptr->lpn = lpn;
+        pp->lpn = lpn;
     } else {
         u8 *data = (u8 *)malloc(VST_BYTES_PER_PAGE * sizeof(u8));
         u8 *addr = (u8 *)dram_addr;
         memcpy(&data[start], addr, length);
-        page_ptr->data = data;
+        pp->data = data;
     }
 }
 

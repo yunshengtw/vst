@@ -16,6 +16,10 @@ clean:
 	rm -f vst-jasmine vst-jasmine-dbg
 .PHONY: clean
 
+test: vst-jasmine ftl_greedy/ftl.so
+	./vst-jasmine ../traces/hm_0-aligned16.trace ftl_greedy/ftl.so
+.PHONY: test
+
 # build FTL shared objects
 FTL = greedy dac faster
 
