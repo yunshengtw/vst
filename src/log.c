@@ -37,6 +37,7 @@ void close_log(void)
 
 void __attribute__((format(printf, 2, 3))) record(int type, const char *fmt, ...)
 {
+    /* TODO: this degrades performance by ~4% */
     if (!fp_log || !loggable[type])
         return;
 

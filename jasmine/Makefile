@@ -1,5 +1,5 @@
 CC = gcc
-SRCS = ../src/vst.c ../src/vflash.c ../src/vram.c ../src/stat.c ../src/log.c
+SRCS = ../src/vst.c ../src/vflash.c ../src/vram.c ../src/stat.c ../src/log.c ../src/checker.c
 #CFLAGS = -std=c99 -g -Wall -rdynamic -I./ -I../src -I./include -DVST
 CFLAGS = -std=c99 -g -O3 -Wall -rdynamic -I./ -I../src -I./include -DVST
 LDFLAGS = -ldl -T ld_script

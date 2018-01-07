@@ -6,7 +6,26 @@
 #ifndef VFLASH_H
 #define VFLASH_H
 
+#include "config.h"
 #include <stdint.h>
+
+typedef struct {
+    uint8_t *data;
+    uint8_t is_erased;
+    uint32_t lpn;
+} flash_page_t;
+
+typedef struct {
+    flash_page_t pages[VST_PAGES_PER_BLOCK];
+} flash_block_t;
+
+typedef struct {
+    flash_block_t blocks[VST_BLOCKS_PER_BANK];
+} flash_bank_t;
+
+typedef struct {
+    flash_bank_t banks[VST_NUM_BANKS];
+} flash_t;
 
 /* flash memory APIs */
 void vst_read_page(uint32_t const bank, uint32_t const blk, uint32_t const page, 

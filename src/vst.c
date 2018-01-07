@@ -10,11 +10,12 @@
 #include <unistd.h>
 #include <getopt.h>
 #include <dlfcn.h>
+#include "config.h"
 #include "vflash.h"
 #include "vram.h"
 #include "stat.h"
 #include "log.h"
-#include "config.h"
+#include "checker.h"
 
 #define MAX_SIZE_TRACE 168638965
 
@@ -187,6 +188,7 @@ static void init(void)
     open_flash();
     open_ram();
     open_stat();
+    open_checker();
 }
 
 static void cleanup(void)
@@ -194,6 +196,7 @@ static void cleanup(void)
     close_flash();
     close_ram();
     close_stat();
+    close_checker();
     /* close_log must succeed other close_xxx */
     close_log();
 }
