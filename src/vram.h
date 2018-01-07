@@ -1,10 +1,10 @@
 /**
- * vbuffer.h
+ * vram.h
  * Authors: Yun-Sheng Chang
  */
 
-#ifndef VBUFFER_H
-#define VBUFFER_H
+#ifndef VRAM_H
+#define VRAM_H
 
 #include <stdint.h>
 
@@ -24,7 +24,7 @@ uint32_t vst_mem_search_min(uint64_t const addr, uint32_t const unit, uint32_t c
 uint32_t vst_mem_search_max(uint64_t const addr, uint32_t const unit, uint32_t const size);
 uint32_t vst_mem_search_equ(uint64_t const addr, uint32_t const unit, 
                        uint32_t const size, uint32_t const val);
-int open_buffer(void);
-void close_buffer(void);
+int open_ram(void);
+void close_ram(void);
 
-#endif // VBUFFER_H
+#endif // VRAM_H

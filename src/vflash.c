@@ -11,6 +11,7 @@
 #include <assert.h>
 #include "config.h"
 #include "vflash.h"
+#include "log.h"
 #include "stat.h"
 
 #define VST_UNKNOWN_CONTENT ((uint32_t)-1)
@@ -231,7 +232,7 @@ int open_flash(void)
             }
         }
     }
-    printf("[INFO] Flash initialized\n");
+    record(LOG_FLASH, "Virtual flash initialized\n");
     return 0;
 }
 

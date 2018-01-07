@@ -1,5 +1,5 @@
 /**
- * vbuffer.c
+ * vram.c
  * Authors: Yun-Sheng Chang
  */
 
@@ -8,7 +8,8 @@
 #include <string.h>
 #include <assert.h>
 #include "config.h"
-#include "vbuffer.h"
+#include "log.h"
+#include "vram.h"
 
 /* emulated DRAM */
 uint8_t __attribute__((section (".dram"))) dram[VST_DRAM_SIZE];
@@ -134,9 +135,6 @@ uint32_t vst_mem_search_min(uint64_t const addr, uint32_t const unit, uint32_t c
             }
         }
     }
-    #ifdef DEBUG
-    //printf("[DEBUG] idx = %u\n", idx);
-    #endif
     return idx;
 }
 
@@ -186,13 +184,13 @@ uint32_t vst_mem_search_equ(uint64_t const addr, uint32_t const unit,
     return 0;
 }
 
-int open_buffer(void)
+int open_ram(void)
 {
     memset(dram, 0, VST_DRAM_SIZE);
-    printf("[INFO] DRAM initialized\n");
+    record(LOG_RAM, "Virtual RAM initialized\n");
     return 0;
 }
 
-void close_buffer(void)
+void close_ram(void)
 {
 }

@@ -6,6 +6,6 @@
 #define VST_API_H
 
 #include "vflash.h"
-#include "vbuffer.h"
+#include "vram.h"
 
 #endif // VST_API_H

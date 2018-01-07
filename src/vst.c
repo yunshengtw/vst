@@ -11,7 +11,7 @@
 #include <getopt.h>
 #include <dlfcn.h>
 #include "vflash.h"
-#include "vbuffer.h"
+#include "vram.h"
 #include "stat.h"
 #include "log.h"
 #include "config.h"
@@ -33,9 +33,8 @@ time_t begin, end;
 double time_spent;
 
 /* misc */
-int trace_cnt, req_id;
+int trace_cnt;
 int pass = 0;
-char *g_filename;
 
 /* unix getopt */
 extern char *optarg;
@@ -54,9 +53,14 @@ int main(int argc, char *argv[])
 	void (*vst_open_ftl)(void);
 	void (*vst_read_sector)(uint32_t const, uint32_t const);
 	void (*vst_write_sector)(uint32_t const, uint32_t const);
-	void (*vst_flush_cache)(void);
-	int done;
+    void (*vst_flush_cache)(void);
+    int done;
     struct trace_ent *traces;
+    char *fname;
+
+    begin = clock();
+
+    init();
 
 	bound = 1;
 	while ((opt = getopt(argc, argv, "ab:")) != -1) {
@@ -83,7 +87,7 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "Fail opening trace file.\n");
 		return 1;
 	}
-	g_filename = argv[optind];
+	fname = argv[optind];
 
 	handle = dlopen(argv[optind + 1], RTLD_LAZY);
 	if (handle == NULL) {
@@ -123,20 +127,19 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	printf("Trace file: %s\n", g_filename);
+    record(LOG_GENERAL, "Trace file: %s\n", fname);
 
     print_ssd_config();
     atexit(cleanup);
 
-    init();
 	done = 0;
     traces = (struct trace_ent *)malloc(MAX_SIZE_TRACE * 
             sizeof(struct trace_ent));
     size_trace = load_trace(fp_trace, traces);
-    // TODO: better begin/end points
-	begin = clock();
+
 	vst_open_ftl();
 	while (!done) {
+        record(LOG_GENERAL, "Trace id = %d\n", trace_cnt);
         for (int i = 0; i < size_trace; i++) {
             lba = traces[i].lba;
             sec_num = traces[i].sec_num;
@@ -150,9 +153,7 @@ int main(int argc, char *argv[])
 				sec_num = VST_MAX_LBA + 1 - lba;
 			/* write */
 			if (rw == 0) {
-                #ifdef DEBUG
-                //printf("[DEBUG] W: %u/%u\n", lba, sec_num);
-                #endif
+                record(LOG_IO, "W: (%u, %u)\n", lba, sec_num);
 				vst_write_sector(lba, sec_num);
 				inc_byte_write(sec_num * VST_BYTES_PER_SECTOR);
 				if (get_byte_write() > bound) {
@@ -162,44 +163,38 @@ int main(int argc, char *argv[])
 			}
 			/* read */
 			else {
-                #ifdef DEBUG
-                //printf("[DEBUG] R: %u/%u\n", lba, sec_num);
-                #endif
+                record(LOG_IO, "R: (%u, %u)\n", lba, sec_num);
 				vst_read_sector(lba, sec_num);
 				inc_byte_read(sec_num * VST_BYTES_PER_SECTOR);
 			}
-            #ifdef DEBUG
-            req_id = i;
-            printf("req id = %d\n", req_id);
-            #endif
 		}
 		trace_cnt++;
-        #ifdef DEBUG
-        printf("trace_cnt = %d\n", trace_cnt);
-        #endif
 	}
 	vst_flush_cache();
-	end = clock();
 	pass = 1;
 
-	time_spent = (double)(end - begin);
+	end = clock();
+	time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
+    record(LOG_GENERAL, "Execution time: %lf (s)\n", time_spent);
 
 	return 0;
 }
 
 static void init(void)
 {
+    open_log("./vst.log");
+    /* open_log must precede other open_xxx */
     open_flash();
-    open_buffer();
+    open_ram();
     open_stat();
-    open_log("/tmp/vst.log");
 }
 
 static void cleanup(void)
 {
     close_flash();
-    close_buffer();
+    close_ram();
     close_stat();
+    /* close_log must succeed other close_xxx */
     close_log();
 }
 
