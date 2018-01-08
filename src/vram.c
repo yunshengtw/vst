@@ -10,10 +10,24 @@
 #include "config.h"
 #include "log.h"
 #include "vram.h"
+#include "vpage.h"
+#include "checker.h"
+
+typedef struct {
+    vpage_t *pages;
+    uint32_t size;
+    uint32_t ptr;
+} rw_buf_t;
+
+typedef struct {
+    vpage_t pages[VST_DRAM_SIZE / VST_BYTES_PER_PAGE];
+} ram_t;
 
 /* emulated DRAM */
 uint8_t __attribute__((section (".dram"))) dram[VST_DRAM_SIZE];
-static uint32_t rbuf_ptr, wbuf_ptr;
+static ram_t vram;
+static rw_buf_t rbuf, wbuf;
+static uint8_t vers[VST_MAX_LBA];
 
 /* RAM APIs */
 inline uint8_t vst_read_dram_8(uint64_t const addr)
@@ -187,19 +201,39 @@ uint32_t vst_mem_search_equ(uint64_t const addr, uint32_t const unit,
 
 uint32_t vst_get_rbuf_ptr(void)
 {
-    return rbuf_ptr;
+    return rbuf.ptr;
 }
 
 uint32_t vst_get_wbuf_ptr(void)
 {
-    return wbuf_ptr;
+    return wbuf.ptr;
 }
 
-int open_ram(void)
+int open_ram(uint64_t raddr, uint32_t rsize, uint64_t waddr, uint32_t wsize)
 {
     memset(dram, 0, VST_DRAM_SIZE);
-    rbuf_ptr = 0;
-    wbuf_ptr = 0;
+
+    for (int i = 0; i < VST_DRAM_SIZE / VST_BYTES_PER_PAGE; i++) {
+        vram.pages[i].tagged = 0;
+        vram.pages[i].data =
+                (uint8_t *)(uint64_t)(VST_DRAM_BASE + i * VST_BYTES_PER_PAGE);
+    }
+    record(LOG_RAM, "DRAM @ %x of size %u B\n", VST_DRAM_BASE, VST_DRAM_SIZE);
+
+    assert(raddr >= VST_DRAM_BASE && raddr < VST_DRAM_BASE + VST_DRAM_SIZE);
+    assert((raddr - VST_DRAM_BASE) % VST_BYTES_PER_PAGE == 0);
+    rbuf.pages = &vram.pages[(raddr - VST_DRAM_BASE) / VST_BYTES_PER_PAGE];
+    rbuf.size = rsize;
+    rbuf.ptr = 0;
+    record(LOG_RAM, "Read buffer @ %lx of size %u\n", raddr, rsize);
+
+    assert(waddr >= VST_DRAM_BASE && waddr < VST_DRAM_BASE + VST_DRAM_SIZE);
+    assert((waddr - VST_DRAM_BASE) % VST_BYTES_PER_PAGE == 0);
+    wbuf.pages = &vram.pages[(waddr - VST_DRAM_BASE) / VST_BYTES_PER_PAGE];
+    wbuf.size = wsize;
+    wbuf.ptr = 0;
+    record(LOG_RAM, "Write buffer @ %lx of size %u\n", waddr, wsize);
+
     record(LOG_RAM, "Virtual RAM initialized\n");
     return 0;
 }
@@ -221,17 +255,47 @@ void send_to_wbuf(uint32_t lba, uint32_t n_sect)
             m = r;
         else
             m = VST_SECTORS_PER_PAGE - s;
+
+        tag_page(&wbuf.pages[wbuf.ptr]);
+        for (uint32_t i = 0; i < m; i++) {
+            /* fill in lba */
+            wbuf.pages[wbuf.ptr].lbas[s + i] = l + i;
+            vers[l + i]++;
+        }
+        wbuf.ptr = (wbuf.ptr + 1) % wbuf.size;
+
+        l += m;
         s = 0;
         r -= m;
-        for (int i = 0; i < m; i++) {
-            /* fill in lba */
-        }
-        //wbuf_ptr = (wbuf_ptr + 1) % VST_NUM_WR_BUFS;
-        //printf("wbuf_ptr = %u\n", wbuf_ptr);
-        wbuf_ptr++;
     }
 }
 
 void recv_from_rbuf(uint32_t lba, uint32_t n_sect)
 {
+    uint32_t l, r, m, s;
+
+    l = lba;
+    r = n_sect;
+    s = lba % VST_SECTORS_PER_PAGE;
+    while (r > 0) {
+        if (s + r < VST_SECTORS_PER_PAGE)
+            m = r;
+        else
+            m = VST_SECTORS_PER_PAGE - s;
+
+        chk_lpn_consistent(&rbuf.pages[rbuf.ptr], l, s, m, vers);
+        //printf("vst: %u\n", rbuf.ptr);
+        rbuf.ptr = (rbuf.ptr + 1) % rbuf.size;
+
+        l += m;
+        s = 0;
+        r -= m;
+    }
+}
+
+vpage_t *vram_vpage_map(uint64_t dram_addr)
+{
+    assert(dram_addr >= VST_DRAM_BASE &&
+            dram_addr < VST_DRAM_BASE + VST_DRAM_SIZE);
+    return &vram.pages[(dram_addr - VST_DRAM_BASE) / VST_BYTES_PER_PAGE];
 }

@@ -31,16 +31,18 @@ void close_checker(void)
 {
 }
 
-void chk_lpn_consistent(flash_page_t *pp, uint32_t lpn)
+void chk_lpn_consistent(vpage_t *pp, uint32_t lba, uint32_t sect, uint32_t n_sect, uint8_t *vers)
 {
     /* TODO: this might degrade perfomance */
     if (!checkable[CHK_LPN_CONSISTENT])
         return;
 
-    if (!pp->is_erased && pp->lpn != -1 && pp->lpn != lpn) {
-        violation("LPN mismatched, issued LPN = %u, stored LPN = %u\n",
-                lpn, pp->lpn);
-        abort();
+    for (uint32_t i = 0; i < n_sect; i++) {
+        if (vers[lba + i] && lba + i != pp->lbas[sect + i]) {
+            violation("LBA mismatched, issued LBA = %u, stored LBA = %u\n",
+                    lba + i, pp->lbas[sect + i]);
+            abort();
+        }
     }
 }
 

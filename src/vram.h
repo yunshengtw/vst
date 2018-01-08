@@ -7,6 +7,8 @@
 #define VRAM_H
 
 #include <stdint.h>
+#include "config.h"
+#include "vpage.h"
 
 /* RAM APIs */
 uint8_t vst_read_dram_8(uint64_t const addr);
@@ -27,9 +29,10 @@ uint32_t vst_mem_search_equ(uint64_t const addr, uint32_t const unit,
 uint32_t vst_get_rbuf_ptr(void);
 uint32_t vst_get_wbuf_ptr(void);
 
-int open_ram(void);
+int open_ram(uint64_t raddr, uint32_t rsize, uint64_t waddr, uint32_t wsize);
 void close_ram(void);
 void send_to_wbuf(uint32_t lba, uint32_t n_sect);
 void recv_from_rbuf(uint32_t lba, uint32_t n_sect);
+vpage_t *vram_vpage_map(uint64_t dram_addr);
 
 #endif // VRAM_H

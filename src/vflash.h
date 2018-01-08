@@ -8,11 +8,13 @@
 
 #include <stdint.h>
 #include "config.h"
+#include "vpage.h"
 
 typedef struct {
-    uint8_t *data;
+    //uint8_t *data;
     uint8_t is_erased;
-    uint32_t lpn;
+    //uint32_t lpn;
+    vpage_t vpage;
 } flash_page_t;
 
 typedef struct {

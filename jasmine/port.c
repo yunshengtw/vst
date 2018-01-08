@@ -58,6 +58,14 @@ void vst_flush_cache(void)
     ftl_flush();
 }
 
+void vst_rwbuf_config(uint64_t *raddr, uint32_t *rsize, uint64_t *waddr, uint32_t *wsize)
+{
+    *raddr = RD_BUF_ADDR;
+    *rsize = NUM_RD_BUFFERS;
+    *waddr = WR_BUF_ADDR;
+    *wsize = NUM_WR_BUFFERS;
+}
+
 /* flash wrappers */
 void nand_page_read(UINT32 const bank, UINT32 const vblock, 
                     UINT32 const page_num, UINT32 const buf_addr)
