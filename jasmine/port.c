@@ -81,6 +81,7 @@ void nand_page_read_to_host(UINT32 const bank, UINT32 const vblock,
     vst_read_page(bank, vblock, page_num, 0, SECTORS_PER_PAGE,
                   (UINT64)RD_BUF_PTR(g_ftl_read_buf_id),
                   vst_lpn, is_host_data_flash);
+    g_ftl_read_buf_id = (g_ftl_read_buf_id + 1) % NUM_RD_BUFFERS;
 }
 
 void nand_page_ptread_to_host(UINT32 const bank, UINT32 const vblock, 
@@ -90,6 +91,7 @@ void nand_page_ptread_to_host(UINT32 const bank, UINT32 const vblock,
     vst_read_page(bank, vblock, page_num, sect_offset, num_sectors, 
                   (UINT64)RD_BUF_PTR(g_ftl_read_buf_id), 
                   vst_lpn, is_host_data_flash);
+    g_ftl_read_buf_id = (g_ftl_read_buf_id + 1) % NUM_RD_BUFFERS;
 }
 
 void nand_page_program(UINT32 const bank, UINT32 const vblock, 
@@ -113,6 +115,7 @@ void nand_page_program_from_host(UINT32 const bank, UINT32 const vblock,
     vst_write_page(bank, vblock, page_num, 0, SECTORS_PER_PAGE,
                    (UINT64)WR_BUF_PTR(g_ftl_write_buf_id), 
                    vst_lpn, is_host_data_flash);
+    g_ftl_write_buf_id = (g_ftl_write_buf_id + 1) % NUM_WR_BUFFERS;
 }
 
 void nand_page_ptprogram_from_host(UINT32 const bank, UINT32 const vblock, 
@@ -123,6 +126,7 @@ void nand_page_ptprogram_from_host(UINT32 const bank, UINT32 const vblock,
     vst_write_page(bank, vblock, page_num, sect_offset, num_sectors,
                    (UINT64)WR_BUF_PTR(g_ftl_write_buf_id), 
                    vst_lpn, is_host_data_flash);
+    g_ftl_write_buf_id = (g_ftl_write_buf_id + 1) % NUM_WR_BUFFERS;
 }
 
 void nand_page_copyback(UINT32 const bank,

@@ -24,7 +24,12 @@ uint32_t vst_mem_search_min(uint64_t const addr, uint32_t const unit, uint32_t c
 uint32_t vst_mem_search_max(uint64_t const addr, uint32_t const unit, uint32_t const size);
 uint32_t vst_mem_search_equ(uint64_t const addr, uint32_t const unit, 
                        uint32_t const size, uint32_t const val);
+uint32_t vst_get_rbuf_ptr(void);
+uint32_t vst_get_wbuf_ptr(void);
+
 int open_ram(void);
 void close_ram(void);
+void send_to_wbuf(uint32_t lba, uint32_t n_sect);
+void recv_from_rbuf(uint32_t lba, uint32_t n_sect);
 
 #endif // VRAM_H

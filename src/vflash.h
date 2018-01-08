@@ -6,8 +6,8 @@
 #ifndef VFLASH_H
 #define VFLASH_H
 
-#include "config.h"
 #include <stdint.h>
+#include "config.h"
 
 typedef struct {
     uint8_t *data;

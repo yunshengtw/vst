@@ -13,6 +13,7 @@
 
 /* emulated DRAM */
 uint8_t __attribute__((section (".dram"))) dram[VST_DRAM_SIZE];
+static uint32_t rbuf_ptr, wbuf_ptr;
 
 /* RAM APIs */
 inline uint8_t vst_read_dram_8(uint64_t const addr)
@@ -184,13 +185,53 @@ uint32_t vst_mem_search_equ(uint64_t const addr, uint32_t const unit,
     return 0;
 }
 
+uint32_t vst_get_rbuf_ptr(void)
+{
+    return rbuf_ptr;
+}
+
+uint32_t vst_get_wbuf_ptr(void)
+{
+    return wbuf_ptr;
+}
+
 int open_ram(void)
 {
     memset(dram, 0, VST_DRAM_SIZE);
+    rbuf_ptr = 0;
+    wbuf_ptr = 0;
     record(LOG_RAM, "Virtual RAM initialized\n");
     return 0;
 }
 
 void close_ram(void)
+{
+}
+
+/* TODO: version checking */
+void send_to_wbuf(uint32_t lba, uint32_t n_sect)
+{
+    uint32_t l, r, m, s;
+
+    l = lba;
+    r = n_sect;
+    s = lba % VST_SECTORS_PER_PAGE;
+    while (r > 0) {
+        if (s + r < VST_SECTORS_PER_PAGE)
+            m = r;
+        else
+            m = VST_SECTORS_PER_PAGE - s;
+        s = 0;
+        r -= m;
+        for (int i = 0; i < m; i++) {
+            /* fill in lba */
+        }
+        //wbuf_ptr = (wbuf_ptr + 1) % VST_NUM_WR_BUFS;
+        //printf("wbuf_ptr = %u\n", wbuf_ptr);
+        wbuf_ptr++;
+    }
+}
+
+void recv_from_rbuf(uint32_t lba, uint32_t n_sect)
 {
 }

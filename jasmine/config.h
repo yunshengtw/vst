@@ -27,4 +27,3 @@
 #define VST_DRAM_SIZE DRAM_SIZE
 
 #endif // CONFIG_H
-

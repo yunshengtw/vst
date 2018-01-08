@@ -20,6 +20,9 @@ clean:
 test: vst-jasmine ftl_greedy/ftl.so
 	./vst-jasmine ../traces/hm_0-aligned16.trace ftl_greedy/ftl.so
 
+mtest: vst-jasmine ftl_greedy/ftl.so
+	./vst-jasmine ../traces/hm_0-aligned16.trace ftl_greedy/ftl.so -b 1000000
+
 ltest: vst-jasmine ftl_greedy/ftl.so
 	./vst-jasmine ../traces/hm_0-aligned16.trace ftl_greedy/ftl.so -a
 

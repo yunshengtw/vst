@@ -155,6 +155,7 @@ int main(int argc, char *argv[])
 			/* write */
 			if (rw == 0) {
                 record(LOG_IO, "W: (%u, %u)\n", lba, sec_num);
+                send_to_wbuf(lba, sec_num);
 				vst_write_sector(lba, sec_num);
 				inc_byte_write(sec_num * VST_BYTES_PER_SECTOR);
 				if (get_byte_write() > bound) {
