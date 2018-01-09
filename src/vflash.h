@@ -11,9 +11,7 @@
 #include "vpage.h"
 
 typedef struct {
-    //uint8_t *data;
     uint8_t is_erased;
-    //uint32_t lpn;
     vpage_t vpage;
 } flash_page_t;
 
@@ -31,11 +29,9 @@ typedef struct {
 
 /* flash memory APIs */
 void vst_read_page(uint32_t const bank, uint32_t const blk, uint32_t const page, 
-               uint32_t const sect, uint32_t const n_sect, uint64_t const dram_addr,
-               uint32_t const lpn, uint8_t const is_host_data);
+               uint32_t const sect, uint32_t const n_sect, uint64_t const dram_addr);
 void vst_write_page(uint32_t const bank, uint32_t const blk, uint32_t const page,
-                uint32_t const sect, uint32_t const n_sect, uint64_t const dram_addr,
-                uint32_t const lpn, uint8_t const is_host_data);
+                uint32_t const sect, uint32_t const n_sect, uint64_t const dram_addr);
 void vst_copyback_page(uint32_t const bank, uint32_t const blk_src, uint32_t const page_src,
                    uint32_t const blk_dst, uint32_t const page_dst);
 void vst_erase_block(uint32_t const bank, uint32_t const blk);

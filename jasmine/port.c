@@ -7,34 +7,16 @@
 #include "vst-api.h"
 
 /* VST tags */
-static UINT8 is_host_data_dram;
-static UINT8 is_host_data_flash;
-static UINT32 vst_lpn;
+static UINT8 omit = 0;
 
 /* FTL metadata */
 extern UINT32 g_ftl_read_buf_id;
 extern UINT32 g_ftl_write_buf_id;
 
 /* VST tag operations */
-void real_dram_op(void)
+void omit_next_dram_op(void)
 {
-    is_host_data_dram = 0;
-}
-
-void fake_dram_op(void)
-{
-    is_host_data_dram = 1;
-}
-
-void real_flash_op(void)
-{
-    is_host_data_flash = 0;
-}
-
-void fake_flash_op(UINT32 lpn)
-{
-    is_host_data_flash = 1;
-    vst_lpn = lpn;
+    omit = 1;
 }
 
 /* host operations */
@@ -70,8 +52,7 @@ void vst_rwbuf_config(uint64_t *raddr, uint32_t *rsize, uint64_t *waddr, uint32_
 void nand_page_read(UINT32 const bank, UINT32 const vblock, 
                     UINT32 const page_num, UINT32 const buf_addr)
 {
-    vst_read_page(bank, vblock, page_num, 0, SECTORS_PER_PAGE, (UINT64)buf_addr,
-                  vst_lpn, is_host_data_flash);
+    vst_read_page(bank, vblock, page_num, 0, SECTORS_PER_PAGE, (UINT64)buf_addr);
 }
 
 void nand_page_ptread(UINT32 const bank, UINT32 const vblock, 
@@ -80,15 +61,14 @@ void nand_page_ptread(UINT32 const bank, UINT32 const vblock,
                       UINT32 const issue_flag)
 {
     vst_read_page(bank, vblock, page_num, sect_offset, num_sectors,
-                  (UINT64)buf_addr, vst_lpn, is_host_data_flash);
+                  (UINT64)buf_addr);
 }
 
 void nand_page_read_to_host(UINT32 const bank, UINT32 const vblock,
                            UINT32 const page_num)
 {
     vst_read_page(bank, vblock, page_num, 0, SECTORS_PER_PAGE,
-                  (UINT64)RD_BUF_PTR(g_ftl_read_buf_id),
-                  vst_lpn, is_host_data_flash);
+                  (UINT64)RD_BUF_PTR(g_ftl_read_buf_id));
     g_ftl_read_buf_id = (g_ftl_read_buf_id + 1) % NUM_RD_BUFFERS;
 }
 
@@ -97,8 +77,7 @@ void nand_page_ptread_to_host(UINT32 const bank, UINT32 const vblock,
                               UINT32 const num_sectors)
 {
     vst_read_page(bank, vblock, page_num, sect_offset, num_sectors, 
-                  (UINT64)RD_BUF_PTR(g_ftl_read_buf_id), 
-                  vst_lpn, is_host_data_flash);
+                  (UINT64)RD_BUF_PTR(g_ftl_read_buf_id)); 
     g_ftl_read_buf_id = (g_ftl_read_buf_id + 1) % NUM_RD_BUFFERS;
 }
 
@@ -106,7 +85,7 @@ void nand_page_program(UINT32 const bank, UINT32 const vblock,
                        UINT32 const page_num, UINT32 const buf_addr)
 {
     vst_write_page(bank, vblock, page_num, 0, SECTORS_PER_PAGE,
-                   (UINT64)buf_addr, vst_lpn, is_host_data_flash);
+                   (UINT64)buf_addr);
 }
 
 void nand_page_ptprogram(UINT32 const bank, UINT32 const vblock, 
@@ -114,15 +93,14 @@ void nand_page_ptprogram(UINT32 const bank, UINT32 const vblock,
                          UINT32 const num_sectors, UINT32 const buf_addr)
 {
     vst_write_page(bank, vblock, page_num, sect_offset, num_sectors,
-                   (UINT64)buf_addr, vst_lpn, is_host_data_flash);
+                   (UINT64)buf_addr);
 }
 
 void nand_page_program_from_host(UINT32 const bank, UINT32 const vblock, 
                                  UINT32 const page_num)
 {
     vst_write_page(bank, vblock, page_num, 0, SECTORS_PER_PAGE,
-                   (UINT64)WR_BUF_PTR(g_ftl_write_buf_id), 
-                   vst_lpn, is_host_data_flash);
+                   (UINT64)WR_BUF_PTR(g_ftl_write_buf_id)); 
     g_ftl_write_buf_id = (g_ftl_write_buf_id + 1) % NUM_WR_BUFFERS;
 }
 
@@ -132,8 +110,7 @@ void nand_page_ptprogram_from_host(UINT32 const bank, UINT32 const vblock,
                                    UINT32 const num_sectors)
 {
     vst_write_page(bank, vblock, page_num, sect_offset, num_sectors,
-                   (UINT64)WR_BUF_PTR(g_ftl_write_buf_id), 
-                   vst_lpn, is_host_data_flash);
+                   (UINT64)WR_BUF_PTR(g_ftl_write_buf_id));
     g_ftl_write_buf_id = (g_ftl_write_buf_id + 1) % NUM_WR_BUFFERS;
 }
 
@@ -157,8 +134,11 @@ void nand_block_erase_sync(UINT32 const bank, UINT32 const vblock)
 
 void _mem_copy(const UINT64 dst, const UINT64 src, UINT32 const bytes)
 {
-    if (!is_host_data_dram)
-        vst_memcpy(dst, src, bytes);
+    if (omit) {
+        omit = 0;
+        return;
+    }
+    vst_memcpy(dst, src, bytes);
 }
 
 UINT32 _mem_search_min_max(UINT64 const addr, UINT32 const unit, UINT32 const size, UINT32 const cmd)
@@ -182,8 +162,11 @@ void _mem_set_sram(UINT64 const addr, UINT32 const val, UINT32 bytes)
 
 void _mem_set_dram(UINT64 const addr, UINT32 const val, UINT32 bytes)
 {
-    if (!is_host_data_dram)
-        vst_memset(addr, val, bytes);
+    if (omit) {
+        omit = 0;
+        return;
+    }
+    vst_memset(addr, val, bytes);
 }
 
 UINT8 _read_dram_8(UINT64 const addr)
@@ -263,4 +246,3 @@ void led(BOOL32 on)
 void led_blink(void)
 {
 }
-

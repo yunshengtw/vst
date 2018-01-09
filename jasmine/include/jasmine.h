@@ -187,10 +187,7 @@ typedef struct
 #include "uart.h"
 #endif
 
-void real_dram_op(void);
-void fake_dram_op(void);
-void real_flash_op(void);
-void fake_flash_op(UINT32 lpn);
+void omit_next_dram_op(void);
 
 #endif	// JASMINE_H
 

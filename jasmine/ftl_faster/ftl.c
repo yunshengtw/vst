@@ -196,9 +196,6 @@ static void build_bad_blk_list(void)
 	UINT32 bank, num_entries, result, vblk_offset;
 	scan_list_t* scan_list = (scan_list_t*) TEMP_BUF_ADDR;
 
-    #ifdef VST
-    real_dram_op();
-    #endif
 	mem_set_dram(BAD_BLK_BMP_ADDR, 0, BAD_BLK_BMP_BYTES);
 
 	disable_irq();
@@ -356,9 +353,6 @@ static void format(void)
     // initialize DRAM metadata
     //----------------------------------------
     // data/log/isolation/free block mapping table
-    #ifdef VST
-    real_dram_op();
-    #endif
     mem_set_dram(DATA_BMT_ADDR, 0, DATA_BMT_BYTES);
     mem_set_dram(LOG_BMT_ADDR, 0, LOG_BMT_BYTES);
     mem_set_dram(ISOL_BMT_ADDR, 0, ISOL_BMT_BYTES);
@@ -545,16 +539,10 @@ static void flush_misc_metadata(void)
             set_miscblk_vpn(bank, MISCBLK_VBN * PAGES_PER_BLK); // vpn = 128
         }
         // copy misc. metadata to FTL buffer
-        #ifdef VST
-        real_dram_op();
-        #endif
         mem_copy(FTL_BUF(bank), &g_misc_meta[bank], misc_meta_bytes);
         mem_copy(FTL_BUF(bank) + misc_meta_bytes, &g_ftl_statistics[bank], ftl_statistics_bytes);
         mem_copy(FTL_BUF(bank) + misc_meta_bytes + hashtbl_bytes, &g_shashtbl[bank], hashtbl_bytes);
 
-        #ifdef VST
-        real_flash_op();
-        #endif
         nand_page_ptprogram(bank,
                             get_miscblk_vpn(bank) / PAGES_PER_BLK,
                             get_miscblk_vpn(bank) % PAGES_PER_BLK,
@@ -600,17 +588,11 @@ static void flush_dram_metadata_into_mapblk(UINT32 const mapblk_lbn, UINT32 cons
             mapblk_vpn = get_mapblk_vpn(bank, mapblk_lbn);
 
             // copy the DRAM metadata to FTL buffer
-            #ifdef VST
-            real_dram_op();
-            #endif
             mem_copy(FTL_BUF(bank), addr, num_bytes);
 
 /*             uart_printf("flush mapblk_lbn %d: bank %d, addr %x, bytes %d, vblock %d, page %d", mapblk_lbn, bank, pmap_addr, pmap_bytes, mapblk_vpn / PAGES_PER_BLK, mapblk_vpn % PAGES_PER_BLK); */
 
             // flush DRAM metadata into map block
-            #ifdef VST
-            real_flash_op();
-            #endif
             nand_page_ptprogram(bank,
                                 mapblk_vpn / PAGES_PER_BLK,
                                 mapblk_vpn % PAGES_PER_BLK,
@@ -658,9 +640,6 @@ static void load_misc_metadata(void)
                 continue;
             }
             // read valid metadata from misc. metadata area
-            #ifdef VST
-            real_flash_op();
-            #endif
             nand_page_ptread(bank,
                              miscblk_vbn,
                              page_num,
@@ -685,9 +664,6 @@ static void load_misc_metadata(void)
 
     // copy to SRAM misc. metadata from FTL buffer
     for (bank = 0; bank < NUM_BANKS; bank++) {
-        #ifdef VST
-        real_dram_op();
-        #endif
         // 1. misc. metadata
         mem_copy(&g_misc_meta[bank], FTL_BUF(bank), misc_meta_bytes);
         // 2. ftl statstics
@@ -733,9 +709,6 @@ static void load_dram_metadata_from_mapblk(UINT32 const mapblk_lbn, UINT32 const
             load_mapblk_vpn[bank]++;
 
             // read FTL metadata from map block
-            #ifdef VST
-            real_flash_op();
-            #endif
             nand_page_ptread(bank,
                              mapblk_vpn / PAGES_PER_BLK,
                              mapblk_vpn % PAGES_PER_BLK,
@@ -755,9 +728,6 @@ static void load_dram_metadata_from_mapblk(UINT32 const mapblk_lbn, UINT32 const
             if (temp_page_addr + BYTES_PER_PAGE > dram_boundary) {
                 temp_bytes = dram_boundary - temp_page_addr;
             }
-            #ifdef VST
-            real_dram_op();
-            #endif
             mem_copy(temp_page_addr, FTL_BUF(bank), temp_bytes);
 
             temp_page_addr += temp_bytes;
@@ -890,9 +860,6 @@ void ftl_read(UINT32 const lba, UINT32 const num_sectors)
         g_ftl_statistics[bank].total_read_cnt++;
 
         if (vpn != 0) {
-            #ifdef VST
-            fake_flash_op(lpn);
-            #endif
             nand_page_ptread_to_host(bank,
                                      vpn / PAGES_PER_BLK,
                                      vpn % PAGES_PER_BLK,
@@ -910,7 +877,7 @@ void ftl_read(UINT32 const lba, UINT32 const num_sectors)
             #endif
             #endif
             #ifdef VST
-            fake_dram_op();
+            omit_next_dram_op();
             #endif
 			mem_set_dram(RD_BUF_PTR(g_ftl_read_buf_id) + sect_offset*BYTES_PER_SECTOR,
                          0xFFFFFFFF, num_sectors_to_read*BYTES_PER_SECTOR);
@@ -1020,9 +987,6 @@ static void write_to_log_block(UINT32 const lpn, UINT32 const sect_offset, UINT3
         // read partial valid data from data/log block
         // left hole sector
         if (page_offset != 0) {
-            #ifdef VST
-            fake_flash_op(lpn);
-            #endif
             nand_page_ptread(bank,
                              src_vbn, src_offset,
                              0, page_offset,
@@ -1031,9 +995,6 @@ static void write_to_log_block(UINT32 const lpn, UINT32 const sect_offset, UINT3
         }
         // right hole sector
         if ((page_offset + column_cnt) < SECTORS_PER_PAGE) {
-            #ifdef VST
-            fake_flash_op(lpn);
-            #endif
             nand_page_ptread(bank,
                              src_vbn, src_offset,
                              page_offset + column_cnt, SECTORS_PER_PAGE - (page_offset + column_cnt),
@@ -1066,9 +1027,6 @@ static void write_to_log_block(UINT32 const lpn, UINT32 const sect_offset, UINT3
     // write new data (make sure that the new data is ready in the write buffer frame)
     // (c.f FO_B_SATA_W flag in flash.h)
     //----
-    #ifdef VST
-    fake_flash_op(lpn);
-    #endif
     nand_page_ptprogram_from_host(bank,
                                   vblock,
                                   page_num,
@@ -1180,13 +1138,7 @@ static UINT32 assign_cur_write_rwlog_lpn(UINT32 const bank)
     // if current rw log block is full
     if ((log_lpn % PAGES_PER_BLK) == (PAGES_PER_BLK - 2)) {
         //write lpn list in the last page of current rw log block
-        #ifdef VST
-        real_dram_op();
-        #endif
         mem_copy(FTL_BUF(bank), g_misc_meta[bank].lpn_list_of_rwlog_blk, sizeof(UINT32) * PAGES_PER_BLK);
-        #ifdef VST
-        real_flash_op();
-        #endif
         nand_page_ptprogram(bank,
                             get_log_vbn(bank, log_lpn / PAGES_PER_BLK), PAGES_PER_BLK - 1,
                             0, (sizeof(UINT32) * PAGES_PER_BLK + BYTES_PER_SECTOR - 1) / BYTES_PER_SECTOR,
@@ -1575,17 +1527,11 @@ static void full_merge(UINT32 const bank)
 
         if (vt_log_lpn % PAGES_PER_BLK == 0) {
             // read lpn list of target isol vbn
-            #ifdef VST
-            real_flash_op();
-            #endif
             nand_page_ptread(bank,
                              get_isol_vbn(bank, get_vt_isol_lpn(bank) / PAGES_PER_BLK), PAGES_PER_BLK - 1,
                              0, sizeof(UINT32) * PAGES_PER_BLK / BYTES_PER_SECTOR,
                              FTL_BUF(bank),
                              RETURN_WHEN_DONE);
-            #ifdef VST
-            real_dram_op();
-            #endif
             mem_copy(g_misc_meta[bank].lpn_list_of_vt_isol_blk, FTL_BUF(bank), sizeof(UINT32) * PAGES_PER_BLK);
         }
         ASSERT(vt_log_lpn % PAGES_PER_BLK != (PAGES_PER_BLK - 1));
@@ -1821,15 +1767,9 @@ static void garbage_collection(UINT32 const bank)
                     // if current isolation block is full,
                     if (get_cur_write_isol_lpn(bank) % PAGES_PER_BLK == (PAGES_PER_BLK - 1)) {
                         // write lpn list in the last page of isol block
-                        #ifdef VST
-                        real_dram_op();
-                        #endif
                         mem_copy(FTL_BUF(bank),
                                  g_misc_meta[bank].lpn_list_of_cur_isol_blk,
                                  sizeof(UINT32) * PAGES_PER_BLK);
-                        #ifdef VST
-                        real_flash_op();
-                        #endif
                         nand_page_ptprogram(bank,
                                             get_isol_vbn(bank, get_cur_write_isol_lpn(bank) / PAGES_PER_BLK),
                                             PAGES_PER_BLK - 1,
@@ -1977,18 +1917,12 @@ static void read_lpn_list_of_vblock(UINT32 const bank, UINT32 const vblock)
     ASSERT(vblock < VBLKS_PER_BANK);
 
     // read lpn list of target vblock
-    #ifdef VST
-    real_flash_op();
-    #endif
     nand_page_ptread(bank,
                      vblock, PAGES_PER_BLK - 1,
                      0, (sizeof(UINT32) * PAGES_PER_BLK + BYTES_PER_SECTOR - 1) / BYTES_PER_SECTOR,
                      FTL_BUF(bank),
                      RETURN_WHEN_DONE);
 
-    #ifdef VST
-    real_dram_op();
-    #endif
     mem_copy(g_misc_meta[bank].lpn_list_of_rwlog_blk, FTL_BUF(bank), sizeof(UINT32) * PAGES_PER_BLK);
 }
 /* static void mark_invalid_in_log_pmap(UINT32 const bank, UINT32 const log_lpn) */
@@ -2024,9 +1958,6 @@ static void set_all_scbit_in_log_blk(UINT32 const bank, UINT32 const log_lbn)
     ASSERT(log_lbn < LOG_BLK_PER_BANK);
     ASSERT(SC_BITMAP_ADDR + ((bank * LOG_BLK_PER_BANK + log_lbn) * PAGES_PER_BLK / 8) < (SC_BITMAP_ADDR + SC_BITMAP_BYTES));
 
-    #ifdef VST
-    real_dram_op();
-    #endif
     mem_copy(SC_BITMAP_ADDR + ((bank * LOG_BLK_PER_BANK + log_lbn) * PAGES_PER_BLK / 8),
              g_mem_to_set,
              PAGES_PER_BLK / 8);
@@ -2036,9 +1967,6 @@ static void clr_all_scbit_in_log_blk(UINT32 const bank, UINT32 const log_lbn)
     ASSERT(log_lbn < LOG_BLK_PER_BANK);
     ASSERT(SC_BITMAP_ADDR + ((bank * LOG_BLK_PER_BANK + log_lbn) * PAGES_PER_BLK / 8) < (SC_BITMAP_ADDR + SC_BITMAP_BYTES));
 
-    #ifdef VST
-    real_dram_op();
-    #endif
     mem_copy(SC_BITMAP_ADDR + ((bank * LOG_BLK_PER_BANK + log_lbn) * PAGES_PER_BLK / 8),
              g_mem_to_clr,
              PAGES_PER_BLK / 8);

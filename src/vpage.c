@@ -45,7 +45,6 @@ void vpage_copy(vpage_t *dst, vpage_t *src, uint32_t sect, uint32_t n_sect)
     } else {
         /* metadata */
         untag_page(dst);
-        /* TODO: this doesnt seem like a generic function */
         if (dst->data == NULL)
             dst->data = (uint8_t *)malloc(VST_BYTES_PER_PAGE * sizeof(uint8_t));
         uint32_t start, length;
@@ -59,6 +58,7 @@ void vpage_copy(vpage_t *dst, vpage_t *src, uint32_t sect, uint32_t n_sect)
     }
 }
 
+/* Should only be called by vflash */
 void vpage_free(vpage_t *pp)
 {
     pp->tagged = 0;
