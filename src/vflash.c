@@ -31,7 +31,8 @@ static flash_t flash;
 void vst_read_page(uint32_t const bank, uint32_t const blk, uint32_t const page,
                uint32_t const sect, uint32_t const n_sect, uint64_t const dram_addr)
 {
-    record(LOG_FLASH, "R: (%u, %u, %u)\n", bank, blk, page);
+    record(LOG_FLASH, "R: flash(%u, %u, %u) -> mem[0x%lx]\n",
+            bank, blk, page, dram_addr);
     inc_flash_read(1);
 
     assert(bank < VST_NUM_BANKS);
@@ -46,7 +47,8 @@ void vst_read_page(uint32_t const bank, uint32_t const blk, uint32_t const page,
 void vst_write_page(uint32_t const bank, uint32_t const blk, uint32_t const page,
                 uint32_t const sect, uint32_t const n_sect, uint64_t const dram_addr)
 {
-    record(LOG_FLASH, "W: (%u, %u, %u)\n", bank, blk, page);
+    record(LOG_FLASH, "W: mem[0x%lx] -> flash(%u, %u, %u)\n",
+            dram_addr, bank, blk, page);
     inc_flash_write(1);
 
     assert(bank < VST_NUM_BANKS);
@@ -65,8 +67,9 @@ void vst_write_page(uint32_t const bank, uint32_t const blk, uint32_t const page
 void vst_copyback_page(uint32_t const bank, uint32_t const blk_src, uint32_t const page_src,
                    uint32_t const blk_dst, uint32_t const page_dst)
 {
-    record(LOG_FLASH, "CB: (%u, %u, %u, %u, %u)\n", bank, blk_src, page_src,
-            blk_dst, page_dst);
+    record(LOG_FLASH, "CB: flash(%u, %u, %u) -> flash(%u, %u, %u)\n",
+            bank, blk_src, page_src,
+            bank, blk_dst, page_dst);
     inc_flash_cb(1);
 
     assert(bank < VST_NUM_BANKS);
@@ -86,7 +89,7 @@ void vst_copyback_page(uint32_t const bank, uint32_t const blk_src, uint32_t con
 
 void vst_erase_block(uint32_t const bank, uint32_t const blk)
 {
-    record(LOG_FLASH, "E: (%u, %u)\n", bank, blk);
+    record(LOG_FLASH, "E: flash(%u, %u)\n", bank, blk);
     inc_flash_erase(1);
 
     for (uint32_t i = 0; i < VST_PAGES_PER_BLOCK; i++) {

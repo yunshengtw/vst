@@ -94,11 +94,85 @@ uint32_t vst_tst_bit_dram(uint64_t const base_addr, uint32_t const bit_offset)
 
 void vst_memcpy(uint64_t const dst, uint64_t const src, uint32_t const len)
 {
-    memcpy((void *)dst, (void *)src, len);
+    record(LOG_RAM, "memcpy: mem[0x%lx] -> mem[0x%lx] of len %u\n", src, dst, len);
+
+    vpage_t *pp_dst, *pp_src;
+    pp_dst = vram_vpage_map(dst);
+    pp_src = vram_vpage_map(src);
+    if (pp_src == NULL) {
+        /* sram -> sram/dram */
+        if (pp_dst != NULL) {
+            /* sram -> dram */
+            vpage_t *pp_dst_end;
+            pp_dst_end = vram_vpage_map(dst + len);
+            for (vpage_t *pp = pp_dst; pp <= pp_dst_end; pp++)
+                untag_page(pp);
+        }
+        memcpy((void *)dst, (void *)src, len);
+    } else {
+        /* dram -> sram/dram */
+        if (pp_dst == NULL) {
+            /* dram -> sram */
+            if (!pp_src->tagged)
+                memcpy((void *)dst, (void *)src, len);
+            else
+                /* there's nothing we can do if dram is tagged */
+                record(LOG_RAM, "Try to move tagged DRAM data to SRAM\n");
+        } else {
+            /* dram -> dram */
+            vpage_t *pp_dst_end;
+            pp_dst_end = vram_vpage_map(dst + len);
+            if (!pp_src->tagged) {
+                for (vpage_t *pp = pp_dst; pp <= pp_dst_end; pp++)
+                    untag_page(pp);
+                memcpy((void *)dst, (void *)src, len);
+            } else {
+                for (vpage_t *pp = pp_dst; pp <= pp_dst_end; pp++)
+                    tag_page(pp);
+                record(LOG_RAM, "Tagged data movement\n");
+                /* only support sector-aligned tagged data copy */
+                if (dst % VST_BYTES_PER_SECTOR != 0 ||
+                        src % VST_BYTES_PER_SECTOR != 0 ||
+                        len % VST_BYTES_PER_SECTOR != 0) {
+                    abort();
+                }
+                int x, y, n_sect;
+                x = dst % VST_BYTES_PER_PAGE / VST_BYTES_PER_SECTOR;
+                y = src % VST_BYTES_PER_PAGE / VST_BYTES_PER_SECTOR;
+                n_sect = len / VST_BYTES_PER_SECTOR;
+                for (int i = 0; i < n_sect; i++) {
+                    record(LOG_RAM, "\tmem[%p] + sec[%d] -> mem[%p] + sec[%d], lba = %u\n",
+                            pp_src->data, y, pp_dst->data, x, pp_src->lbas[x]);
+                    pp_dst->lbas[x] = pp_src->lbas[y];
+                    x++;
+                    y++;
+                    if (x == VST_SECTORS_PER_PAGE) {
+                        x = 0;
+                        pp_dst++;
+                    }
+                    if (y == VST_SECTORS_PER_PAGE) {
+                        y = 0;
+                        pp_src++;
+                    }
+                }
+            }
+        }
+    }
 }
 
 void vst_memset(uint64_t const addr, uint32_t const val, uint32_t const len)
 {
+    record(LOG_RAM, "memset: mem[0x%lx] of len %u\n", addr, len);
+
+    vpage_t *pp_tgt;
+    pp_tgt = vram_vpage_map(addr);
+    if (pp_tgt != NULL) {
+        vpage_t *pp_tgt_end;
+        pp_tgt_end = vram_vpage_map(addr + len);
+        assert(pp_tgt_end);
+        for (vpage_t *pp = pp_tgt; pp <= pp_tgt_end; pp++)
+            untag_page(pp);
+    }
     memset((void *)addr, val, len);
 }
 
@@ -295,7 +369,9 @@ void recv_from_rbuf(uint32_t lba, uint32_t n_sect)
 
 vpage_t *vram_vpage_map(uint64_t dram_addr)
 {
-    assert(dram_addr >= VST_DRAM_BASE &&
-            dram_addr < VST_DRAM_BASE + VST_DRAM_SIZE);
-    return &vram.pages[(dram_addr - VST_DRAM_BASE) / VST_BYTES_PER_PAGE];
+    if (dram_addr >= VST_DRAM_BASE &&
+        dram_addr < VST_DRAM_BASE + VST_DRAM_SIZE) {
+        return &vram.pages[(dram_addr - VST_DRAM_BASE) / VST_BYTES_PER_PAGE];
+    }
+    return NULL;
 }
