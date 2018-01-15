@@ -7,9 +7,8 @@
  * 3. write buffer and cache flushing
  */
 
-#include <assert.h>
+//#include <ASSERT.h>
 #include "ftl.h"
-#include "board.h"
 
 /* TODO: bad name */
 #define VC_MAX 0xCDCD
@@ -42,10 +41,20 @@ static void inc_free_blk_cnt(UINT32 const bank);
 static void dec_free_blk_cnt(UINT32 const bank);
 static UINT32 get_bad_blk_cnt(UINT32 const bank);
 static void set_bad_blk_cnt(UINT32 const bank, UINT32 const cnt);
+static void inc_bad_blk_cnt(UINT32 const bank);
 static UINT32 get_vt_blk(UINT32 const bank);
 static UINT32 get_gc_blk(UINT32 const bank);
 static void set_gc_blk(UINT32 const bank, UINT32 const blk);
 static UINT32 reach_gc_threshold(UINT32 const bank);
+
+/* hardware-related functions */
+static void build_bad_blk_list(void);
+static void wait_rdbuf_free(UINT32 bufid);
+static void set_bm_read_limit(UINT32 bufid);
+static void write_format_mark(void);
+static BOOL32 check_format_mark(void);
+static void set_intr_mask(UINT32 flags);
+static void set_fconf_pause(UINT32 flags);
 
 typedef struct {
     UINT32 free_blk_cnt;
@@ -112,7 +121,12 @@ void ftl_read(UINT32 const lba, UINT32 const n_sect)
             /* try to read a logical page that has never been written to */
             UINT32 next_read_buf_id = (g_ftl_read_buf_id + 1) % NUM_RD_BUFFERS;
             wait_rdbuf_free(next_read_buf_id);
-            fill_buf_ff(RD_BUF_PTR(g_ftl_read_buf_id), base_sect, cnt_sect);
+            #ifdef VST
+            omit_next_dram_op();
+            #endif
+            mem_set_dram(RD_BUF_PTR(g_ftl_read_buf_id) +
+                    base_sect * BYTES_PER_SECTOR,
+                    0xffffffff, cnt_sect * BYTES_PER_SECTOR);
             flash_finish();
             set_bm_read_limit(next_read_buf_id);
             g_ftl_read_buf_id = next_read_buf_id;
@@ -209,6 +223,45 @@ void ftl_write(UINT32 const lba, UINT32 const n_sect)
 
 void ftl_flush(void)
 {
+}
+
+void ftl_isr(void)
+{
+    #ifndef VST
+    UINT32 bank;
+    UINT32 flags;
+
+    uart_print("BSP interrupt occurred");
+    /* interrupt pending clear (ICU) */
+    SETREG(APB_INT_STS, INTR_FLASH);
+
+    for (bank = 0; bank < NUM_BANKS; bank++) {
+        while (BSP_FSM(bank) != BANK_IDLE)
+            ;
+        flags = BSP_INTR(bank);
+        if (flags == 0) {
+            continue;
+        }
+        UINT32 fc = GETREG(BSP_CMD(bank));
+        CLR_BSP_INTR(bank, flags);
+
+        /* interrupt handling */
+        if (flags & FIRQ_DATA_CORRUPT) {
+            uart_printf("BSP interrupt at bank: 0x%x", bank);
+            uart_print("FIRQ_DATA_CORRUPT occurred");
+        }
+        if (flags & (FIRQ_BADBLK_H | FIRQ_BADBLK_L)) {
+            uart_printf("BSP interrupt at bank: 0x%x", bank);
+            if (fc == FC_COL_ROW_IN_PROG || fc == FC_IN_PROG || fc == FC_PROG) {
+                uart_print("Find runtime bad block on programming");
+            } else {
+                uart_printf("Find runtime bad block on erasing blk #%d",
+                        GETREG(BSP_ROW_H(bank)) / PAGES_PER_BLK);
+                ASSERT(fc == FC_ERASE);
+            }
+        }
+    }
+    #endif
 }
 
 /* TODO */
@@ -331,7 +384,7 @@ static UINT16 get_vcount(UINT32 const bank, UINT32 const blk)
 static void set_vcount(UINT32 const bank, UINT32 const blk,
                        UINT16 const vcount)
 {
-    assert(vcount == VC_MAX || (vcount >= 0 && vcount <= PAGES_PER_VBLK));
+    ASSERT(vcount == VC_MAX || (vcount >= 0 && vcount <= PAGES_PER_VBLK));
     write_dram_16(VCOUNT_ADDR + ((bank * VBLKS_PER_BANK) + blk) *
             sizeof(UINT16), vcount);
 }
@@ -374,8 +427,8 @@ static UINT32 get_active_ppn(UINT32 const bank)
         ppn++;
     }
 
-    assert(ppn / PAGES_PER_VBLK < VBLKS_PER_BANK);
-    assert(ppn % PAGES_PER_VBLK != PAGES_PER_VBLK - 1);
+    ASSERT(ppn / PAGES_PER_VBLK < VBLKS_PER_BANK);
+    ASSERT(ppn % PAGES_PER_VBLK != PAGES_PER_VBLK - 1);
     set_last_write_ppn(bank, ppn);
 
     return ppn;
@@ -410,7 +463,7 @@ static UINT32 garbage_collection(UINT32 const bank)
 
     vt_blk = get_vt_blk(bank);
     gc_blk = get_gc_blk(bank);
-    assert(get_vcount(bank, gc_blk) == VC_MAX);
+    ASSERT(get_vcount(bank, gc_blk) == VC_MAX);
     vcount = get_vcount(bank, vt_blk);
 
     nand_page_ptread(bank, vt_blk, PAGES_PER_VBLK - 1, 0,
@@ -431,7 +484,7 @@ static UINT32 garbage_collection(UINT32 const bank)
             gc_page++;
         }
     }
-    assert(gc_page == vcount);
+    ASSERT(gc_page == vcount);
 
     nand_block_erase(bank, vt_blk);
 
@@ -474,6 +527,11 @@ static void set_bad_blk_cnt(UINT32 const bank, UINT32 const cnt)
     state_of_banks[bank].bad_blk_cnt = cnt;
 }
 
+static void inc_bad_blk_cnt(UINT32 const bank)
+{
+    state_of_banks[bank].bad_blk_cnt++;
+}
+
 static UINT32 get_vt_blk(UINT32 const bank)
 {
     UINT16 *vcounts = (UINT16 *)
@@ -510,4 +568,237 @@ static void set_gc_blk(UINT32 const bank, UINT32 const blk)
 static UINT32 reach_gc_threshold(UINT32 const bank)
 {
     return (state_of_banks[bank].free_blk_cnt == 1);
+}
+
+static void build_bad_blk_list(void)
+{
+    #ifndef VST
+    UINT32 bank, num_entries, result, vblk_offset;
+    scan_list_t* scan_list = (scan_list_t*) TEMP_BUF_ADDR;
+
+    mem_set_dram(BAD_BLK_BMP_ADDR, 0, BAD_BLK_BMP_BYTES);
+
+    disable_irq();
+
+    flash_clear_irq();
+
+    for (bank = 0; bank < NUM_BANKS; bank++) {
+        SETREG(FCP_CMD, FC_COL_ROW_READ_OUT);
+        SETREG(FCP_BANK, REAL_BANK(bank));
+        SETREG(FCP_OPTION, FO_E);
+        SETREG(FCP_DMA_ADDR, (UINT32) scan_list);
+        SETREG(FCP_DMA_CNT, SCAN_LIST_SIZE);
+        SETREG(FCP_COL, 0);
+        SETREG(FCP_ROW_L(bank), SCAN_LIST_PAGE_OFFSET);
+        SETREG(FCP_ROW_H(bank), SCAN_LIST_PAGE_OFFSET);
+
+        SETREG(FCP_ISSUE, 0);
+        while ((GETREG(WR_STAT) & 0x00000001) != 0);
+        while (BSP_FSM(bank) != BANK_IDLE);
+
+        num_entries = 0;
+        result = OK;
+
+        if (BSP_INTR(bank) & FIRQ_DATA_CORRUPT) {
+            result = FAIL;
+        } else
+        {
+            UINT32 i;
+
+            num_entries = read_dram_16(&(scan_list->num_entries));
+
+            if (num_entries > SCAN_LIST_ITEMS) {
+                result = FAIL;
+            } else {
+                for (i = 0; i < num_entries; i++) {
+                    UINT16 entry = read_dram_16(scan_list->list + i);
+                    UINT16 pblk_offset = entry & 0x7FFF;
+                    if (pblk_offset == 0 || pblk_offset >= PBLKS_PER_BANK) {
+                        #if OPTION_REDUCED_CAPACITY == FALSE
+                        result = FAIL;
+                        #endif
+                    } else {
+                        write_dram_16(scan_list->list + i, pblk_offset);
+                    }
+                }
+            }
+        }
+
+        if (result == FAIL)
+            num_entries = 0;  // We cannot trust this scan list. Perhaps a software bug.
+        else
+            write_dram_16(&(scan_list->num_entries), 0);
+
+        set_bad_blk_cnt(bank, 0);
+
+        for (vblk_offset = 1; vblk_offset < VBLKS_PER_BANK; vblk_offset++) {
+            BOOL32 bad = FALSE;
+
+            #if OPTION_2_PLANE
+            UINT32 pblk_offset;
+
+            pblk_offset = vblk_offset * NUM_PLANES;
+
+            // fix bug@jasmine v.1.1.0
+            if (mem_search_equ_dram(scan_list, sizeof(UINT16), num_entries + 1, pblk_offset) < num_entries + 1)
+                bad = TRUE;
+
+            pblk_offset = vblk_offset * NUM_PLANES + 1;
+
+            // fix bug@jasmine v.1.1.0
+            if (mem_search_equ_dram(scan_list, sizeof(UINT16), num_entries + 1, pblk_offset) < num_entries + 1)
+                bad = TRUE;
+            #else
+            // fix bug@jasmine v.1.1.0
+            if (mem_search_equ_dram(scan_list, sizeof(UINT16), num_entries + 1, vblk_offset) < num_entries + 1)
+                bad = TRUE;
+            #endif
+
+            if (bad) {
+                inc_bad_blk_cnt(bank);
+                set_bit_dram(BAD_BLK_BMP_ADDR + bank*(VBLKS_PER_BANK/8 + 1), vblk_offset);
+            }
+        }
+    }
+    #endif
+}
+
+static void wait_rdbuf_free(UINT32 bufid)
+{
+    #ifndef VST
+    #if OPTION_FTL_TEST == 0
+    while (bufid == GETREG(SATA_RBUF_PTR));
+    #endif
+    #endif
+}
+
+static void set_bm_read_limit(UINT32 bufid)
+{
+    #ifndef VST
+    SETREG(BM_STACK_RDSET, bufid);
+    SETREG(BM_STACK_RESET, 0x02);
+    #endif
+}
+
+/* This function writes a format mark to a page at bank #0, block #0 */
+static void write_format_mark(void)
+{
+    #ifndef VST
+    #ifdef __GNUC__
+    extern UINT32 size_of_firmware_image;
+    UINT32 firmware_image_pages = (((UINT32) (&size_of_firmware_image)) +
+            BYTES_PER_FW_PAGE - 1) / BYTES_PER_FW_PAGE;
+    #else
+    extern UINT32 Image$$ER_CODE$$RO$$Length;
+    extern UINT32 Image$$ER_RW$$RW$$Length;
+    UINT32 firmware_image_bytes = ((UINT32) &Image$$ER_CODE$$RO$$Length) +
+            ((UINT32) &Image$$ER_RW$$RW$$Length);
+    UINT32 firmware_image_pages =
+            (firmware_image_bytes + BYTES_PER_FW_PAGE - 1) / BYTES_PER_FW_PAGE;
+    #endif
+
+    UINT32 format_mark_page_offset = FW_PAGE_OFFSET + firmware_image_pages;
+
+    mem_set_dram(FTL_BUF_ADDR, 0, BYTES_PER_SECTOR);
+
+    SETREG(FCP_CMD, FC_COL_ROW_IN_PROG);
+    SETREG(FCP_BANK, REAL_BANK(0));
+    SETREG(FCP_OPTION, FO_E | FO_B_W_DRDY);
+    SETREG(FCP_DMA_ADDR, FTL_BUF_ADDR);     // DRAM -> flash
+    SETREG(FCP_DMA_CNT, BYTES_PER_SECTOR);
+    SETREG(FCP_COL, 0);
+    SETREG(FCP_ROW_L(0), format_mark_page_offset);
+    SETREG(FCP_ROW_H(0), format_mark_page_offset);
+
+    /*
+     * At this point, we do not have to check Waiting Room status
+     * before issuing a command, because we have waited for all the
+     * banks to become idle before returning from format().
+     */
+    SETREG(FCP_ISSUE, 0);
+
+    /* wait for the FC_COL_ROW_IN_PROG command to be accepted by bank #0 */
+    while ((GETREG(WR_STAT) & 0x00000001) != 0);
+
+    /* wait until bank #0 finishes the write operation */
+    while (BSP_FSM(0) != BANK_IDLE);
+    #endif
+}
+
+/* 
+ * This function reads a flash page from (bank #0, block #0)
+ * in order to check whether the SSD is formatted or not.
+ */
+static BOOL32 check_format_mark(void)
+{
+    #ifndef VST
+    #ifdef __GNUC__
+    extern UINT32 size_of_firmware_image;
+    UINT32 firmware_image_pages = (((UINT32) (&size_of_firmware_image)) +
+        BYTES_PER_FW_PAGE - 1) / BYTES_PER_FW_PAGE;
+    #else
+    extern UINT32 Image$$ER_CODE$$RO$$Length;
+    extern UINT32 Image$$ER_RW$$RW$$Length;
+    UINT32 firmware_image_bytes = ((UINT32) &Image$$ER_CODE$$RO$$Length) +
+            ((UINT32) &Image$$ER_RW$$RW$$Length);
+    UINT32 firmware_image_pages =
+            (firmware_image_bytes + BYTES_PER_FW_PAGE - 1) / BYTES_PER_FW_PAGE;
+    #endif
+
+    UINT32 format_mark_page_offset = FW_PAGE_OFFSET + firmware_image_pages;
+    UINT32 temp;
+
+    /* clear any flash interrupt flags that might have been set */
+    flash_clear_irq();
+
+    SETREG(FCP_CMD, FC_COL_ROW_READ_OUT);
+    SETREG(FCP_BANK, REAL_BANK(0));
+    SETREG(FCP_OPTION, FO_E);
+    SETREG(FCP_DMA_ADDR, FTL_BUF_ADDR);     // flash -> DRAM
+    SETREG(FCP_DMA_CNT, BYTES_PER_SECTOR);
+    SETREG(FCP_COL, 0);
+    SETREG(FCP_ROW_L(0), format_mark_page_offset);
+    SETREG(FCP_ROW_H(0), format_mark_page_offset);
+
+    /*
+     * At this point, we do not have to check Waiting Room status
+     * before issuing a command, because scan list loading has been
+     * completed just before this function is called.
+     */
+    SETREG(FCP_ISSUE, 0);
+
+    /* wait for the FC_COL_ROW_READ_OUT command to be accepted by bank #0 */
+    while ((GETREG(WR_STAT) & 0x00000001) != 0);
+
+    /* wait until bank #0 finishes the read operation */
+    while (BSP_FSM(0) != BANK_IDLE);
+
+    /* Now that the read operation is complete, we can check interrupt flags */
+    temp = BSP_INTR(0) & FIRQ_ALL_FF;
+    /* clear interrupt flags */
+    CLR_BSP_INTR(0, 0xFF);
+
+    if (temp != 0)
+        /* the page contains all-0xFF (the format mark does not exist) */
+        return FALSE;
+    else
+        /* the page contains sth other than 0xFF (must be the format mark) */
+        return TRUE;
+    #else
+        return TRUE;
+    #endif
+}
+
+static void set_intr_mask(UINT32 flags)
+{
+    #ifndef VST
+    SETREG(INTR_MASK, flags);
+    #endif
+}
+
+static void set_fconf_pause(UINT32 flags)
+{
+    #ifndef VST
+    SETREG(FCONF_PAUSE, flags);
+    #endif
 }

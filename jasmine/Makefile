@@ -1,6 +1,6 @@
 CC = gcc
 SRCS = ../src/vst.c ../src/vflash.c ../src/vram.c ../src/stat.c ../src/log.c ../src/checker.c ../src/vpage.c
-#CFLAGS = -std=c99 -g -Wall -rdynamic -I./ -I../src -I./include -DVST
+#CFLAGS = -std=c99 -g -O0 -Wall -rdynamic -I./ -I../src -I./include -DVST
 CFLAGS = -std=c99 -g -O3 -Wall -rdynamic -I./ -I../src -I./include -DVST
 LDFLAGS = -ldl -T ld_script
 
@@ -17,17 +17,17 @@ clean:
 	rm -f vst-jasmine vst-jasmine-dbg
 .PHONY: clean
 
-wrtest: vst-jasmine ftl_greedy/ftl.so
-	./vst-jasmine ../test-traces/write-and-read.trace ftl_greedy/ftl.so -c
+wrtest: vst-jasmine ftl_core/ftl.so
+	./vst-jasmine ../test-traces/write-and-read.trace ftl_core/ftl.so -c
 
-test: vst-jasmine ftl_greedy/ftl.so
-	./vst-jasmine ../traces/hm_0-aligned16.trace ftl_greedy/ftl.so
+test: vst-jasmine ftl_core/ftl.so
+	./vst-jasmine ../traces/hm_0-aligned16.trace ftl_core/ftl.so
 
-mtest: vst-jasmine ftl_greedy/ftl.so
-	./vst-jasmine ../traces/hm_0-aligned16.trace ftl_greedy/ftl.so -c
+mtest: vst-jasmine ftl_core/ftl.so
+	./vst-jasmine ../traces/hm_0-aligned16.trace ftl_core/ftl.so -c
 
-ltest: vst-jasmine ftl_greedy/ftl.so
-	./vst-jasmine ../traces/hm_0-aligned16.trace ftl_greedy/ftl.so -a
+ltest: vst-jasmine ftl_core/ftl.so
+	./vst-jasmine ../traces/hm_0-aligned16.trace ftl_core/ftl.so -a
 
 ftest: vst-jasmine ftl_faster_bug/ftl.so
 	./vst-jasmine ../traces/hm_0-aligned16.trace ftl_faster_bug/ftl.so -a
