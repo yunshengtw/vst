@@ -69,6 +69,7 @@ UINT32 g_ftl_read_buf_id, g_ftl_write_buf_id;
 
 void ftl_open(void)
 {
+    led(0);
     uart_printf("ftl_open() starts\n");
     sanity_check();
 
@@ -91,6 +92,7 @@ void ftl_open(void)
     enable_irq();
 
     uart_printf("ftl_open() ends\n");
+    led(1);
 }
 
 #define get_bank(lpn) ((lpn) % NUM_BANKS)
@@ -222,6 +224,7 @@ void ftl_write(UINT32 const lba, UINT32 const n_sect)
 
 void ftl_flush(void)
 {
+    flash_finish();
 }
 
 void ftl_isr(void)
@@ -293,8 +296,8 @@ static void format(void)
     mem_set_dram(VCOUNT_ADDR, 0, VCOUNT_BYTES);
 
     /* erase all blocks */
-    for (bank = 2; bank < NUM_BANKS; bank++) {
-        for (blk = 0; blk < VBLKS_PER_BANK; blk++) {
+    for (bank = 0; bank < NUM_BANKS; bank++) {
+        for (blk = 1; blk < VBLKS_PER_BANK; blk++) {
             if (!is_bad_block(bank, blk)) {
                 nand_block_erase(bank, blk);
                 set_vcount(bank, blk, 0);
