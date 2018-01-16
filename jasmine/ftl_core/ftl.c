@@ -7,7 +7,6 @@
  * 3. write buffer and cache flushing
  */
 
-//#include <ASSERT.h>
 #include "ftl.h"
 
 /* TODO: bad name */
@@ -289,6 +288,10 @@ static void format(void)
 {
     UINT32 bank, blk;
 
+    /* init dram */
+    mem_set_dram(PAGE_MAP_ADDR, 0, PAGE_MAP_BYTES);
+    mem_set_dram(VCOUNT_ADDR, 0, VCOUNT_BYTES);
+
     /* erase all blocks */
     for (bank = 2; bank < NUM_BANKS; bank++) {
         for (blk = 0; blk < VBLKS_PER_BANK; blk++) {
@@ -300,10 +303,6 @@ static void format(void)
             }
         }
     }
-
-    /* init dram */
-    mem_set_dram(PAGE_MAP_ADDR, 0, PAGE_MAP_BYTES);
-    mem_set_dram(VCOUNT_ADDR, 0, VCOUNT_BYTES);
 
     /* init sram */
     for (bank = 0; bank < NUM_BANKS; bank++) {
