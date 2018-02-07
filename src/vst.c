@@ -14,7 +14,7 @@
 #include "vflash.h"
 #include "vram.h"
 #include "stat.h"
-#include "log.h"
+#include "logger.h"
 #include "checker.h"
 
 #define MAX_SIZE_TRACE 168638965
@@ -204,8 +204,8 @@ int main(int argc, char *argv[])
 
 static void init(void)
 {
-    open_log("./vst.log");
-    /* open_log must precede other open_xxx */
+    open_logger("./vst.log");
+    /* open_logger must precede other open_xxx */
     open_flash();
     open_ram(raddr, rsize, waddr, wsize);
     open_stat();
@@ -218,8 +218,8 @@ static void cleanup(void)
     close_ram();
     close_stat();
     close_checker();
-    /* close_log must succeed other close_xxx */
-    close_log();
+    /* close_logger must succeed other close_xxx */
+    close_logger();
 }
 
 static void print_ssd_config(void)

@@ -1,16 +1,16 @@
 /**
- * log.c
+ * logger.c
  * Authors: Yun-Sheng Chang
  */
 
 #include <stdio.h>
 #include <stdarg.h>
-#include "log.h"
+#include "logger.h"
 
 static FILE *fp_log;
 static int loggable[LOG_MAX];
 
-int open_log(char *fname)
+int open_logger(char *fname)
 {
     if (fname != NULL) {
         fp_log = fopen(fname, "w");
@@ -29,7 +29,7 @@ int open_log(char *fname)
     return 0;
 }
 
-void close_log(void)
+void close_logger(void)
 {
     if (fp_log != NULL)
         fclose(fp_log);

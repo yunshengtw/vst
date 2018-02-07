@@ -13,7 +13,7 @@
 #include "vflash.h"
 #include "vram.h"
 #include "vpage.h"
-#include "log.h"
+#include "logger.h"
 #include "checker.h"
 #include "stat.h"
 
@@ -31,8 +31,8 @@ static flash_t flash;
 void vst_read_page(uint32_t const bank, uint32_t const blk, uint32_t const page,
                uint32_t const sect, uint32_t const n_sect, uint64_t const dram_addr)
 {
-    record(LOG_FLASH, "R: flash(%u, %u, %u) -> mem[0x%lx]\n",
-            bank, blk, page, dram_addr);
+    record(LOG_FLASH, "R: flash(%u, %u, %u, %u, %u) -> mem[0x%lx] + sec[%u]\n",
+            bank, blk, page, sect, n_sect, dram_addr, sect);
     inc_flash_read(1);
 
     assert(bank < VST_NUM_BANKS);
@@ -47,8 +47,8 @@ void vst_read_page(uint32_t const bank, uint32_t const blk, uint32_t const page,
 void vst_write_page(uint32_t const bank, uint32_t const blk, uint32_t const page,
                 uint32_t const sect, uint32_t const n_sect, uint64_t const dram_addr)
 {
-    record(LOG_FLASH, "W: mem[0x%lx] -> flash(%u, %u, %u)\n",
-            dram_addr, bank, blk, page);
+    record(LOG_FLASH, "W: mem[0x%lx] + sec[%u] -> flash(%u, %u, %u, %u, %u)\n",
+            dram_addr, sect, bank, blk, page, sect, n_sect);
     inc_flash_write(1);
 
     assert(bank < VST_NUM_BANKS);

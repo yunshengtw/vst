@@ -8,7 +8,7 @@
 #include <string.h>
 #include <assert.h>
 #include "config.h"
-#include "log.h"
+#include "logger.h"
 #include "vram.h"
 #include "vpage.h"
 #include "checker.h"
@@ -142,7 +142,7 @@ void vst_memcpy(uint64_t const dst, uint64_t const src, uint32_t const len)
                 n_sect = len / VST_BYTES_PER_SECTOR;
                 for (int i = 0; i < n_sect; i++) {
                     record(LOG_RAM, "\tmem[%p] + sec[%d] -> mem[%p] + sec[%d], lba = %u\n",
-                            pp_src->data, y, pp_dst->data, x, pp_src->lbas[x]);
+                            pp_src->data, y, pp_dst->data, x, pp_src->lbas[y]);
                     pp_dst->lbas[x] = pp_src->lbas[y];
                     x++;
                     y++;
