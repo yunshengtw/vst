@@ -28,8 +28,8 @@ static flash_t flash;
 
 /* public interfaces */
 /* flash memory APIs */
-void vst_read_page(uint32_t const bank, uint32_t const blk, uint32_t const page,
-               uint32_t const sect, uint32_t const n_sect, uint64_t const dram_addr)
+void vst_read_page(uint32_t bank, uint32_t blk, uint32_t page,
+               uint32_t sect, uint32_t n_sect, uint64_t dram_addr)
 {
     record(LOG_FLASH, "R: flash(%u, %u, %u, %u, %u) -> mem[0x%lx] + sec[%u]\n",
             bank, blk, page, sect, n_sect, dram_addr, sect);
@@ -44,8 +44,8 @@ void vst_read_page(uint32_t const bank, uint32_t const blk, uint32_t const page,
     vpage_copy(vram_vpage_map(dram_addr), &pp->vpage, sect, n_sect);
 }
 
-void vst_write_page(uint32_t const bank, uint32_t const blk, uint32_t const page,
-                uint32_t const sect, uint32_t const n_sect, uint64_t const dram_addr)
+void vst_write_page(uint32_t bank, uint32_t blk, uint32_t page,
+                uint32_t sect, uint32_t n_sect, uint64_t dram_addr)
 {
     record(LOG_FLASH, "W: mem[0x%lx] + sec[%u] -> flash(%u, %u, %u, %u, %u)\n",
             dram_addr, sect, bank, blk, page, sect, n_sect);
@@ -64,8 +64,8 @@ void vst_write_page(uint32_t const bank, uint32_t const blk, uint32_t const page
     vpage_copy(&pp->vpage, vram_vpage_map(dram_addr), sect, n_sect);
 }
 
-void vst_copyback_page(uint32_t const bank, uint32_t const blk_src, uint32_t const page_src,
-                   uint32_t const blk_dst, uint32_t const page_dst)
+void vst_copyback_page(uint32_t bank, uint32_t blk_src, uint32_t page_src,
+                   uint32_t blk_dst, uint32_t page_dst)
 {
     record(LOG_FLASH, "CB: flash(%u, %u, %u) -> flash(%u, %u, %u)\n",
             bank, blk_src, page_src,
@@ -87,7 +87,7 @@ void vst_copyback_page(uint32_t const bank, uint32_t const blk_src, uint32_t con
     vpage_copy(&pp_dst->vpage, &pp_src->vpage, 0, VST_SECTORS_PER_PAGE);
 }
 
-void vst_erase_block(uint32_t const bank, uint32_t const blk)
+void vst_erase_block(uint32_t bank, uint32_t blk)
 {
     record(LOG_FLASH, "E: flash(%u, %u)\n", bank, blk);
     inc_flash_erase(1);

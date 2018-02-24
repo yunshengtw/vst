@@ -55,8 +55,8 @@ int main(int argc, char *argv[])
     uint32_t lba, sec_num, rw;
     int size_trace;
     void (*vst_open_ftl)(void);
-    void (*vst_read_sector)(uint32_t const, uint32_t const);
-    void (*vst_write_sector)(uint32_t const, uint32_t const);
+    void (*vst_read_sector)(uint32_t, uint32_t);
+    void (*vst_write_sector)(uint32_t, uint32_t);
     void (*vst_flush_cache)(void);
     void (*vst_rwbuf_config)(uint64_t *, uint32_t *, uint64_t *, uint32_t *);
     int done;
@@ -109,7 +109,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    vst_read_sector = (void (*)(uint32_t const, uint32_t const))dlsym(
+    vst_read_sector = (void (*)(uint32_t, uint32_t))dlsym(
             handle, 
             "vst_read_sector");
     dl_err = dlerror();
@@ -118,7 +118,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    vst_write_sector = (void (*)(uint32_t const, uint32_t const))dlsym(
+    vst_write_sector = (void (*)(uint32_t, uint32_t))dlsym(
             handle, 
             "vst_write_sector");
     dl_err = dlerror();

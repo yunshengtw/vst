@@ -17,7 +17,7 @@
 
 #define ENABLE_CHK_LPN_CONSISTENT 1
 #define ENABLE_CHK_NON_SEQ_WRITE 0
-#define ENABLE_CHK_OVERWRITE 0
+#define ENABLE_CHK_OVERWRITE 1
 
 int open_checker(void);
 void close_checker(void);

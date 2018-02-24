@@ -30,45 +30,45 @@ static rw_buf_t rbuf, wbuf;
 static uint8_t vers[VST_MAX_LBA];
 
 /* RAM APIs */
-inline uint8_t vst_read_dram_8(uint64_t const addr)
+uint8_t vst_read_dram_8(uint64_t addr)
 {
     return *(uint8_t *)addr;
 }
 
-inline uint16_t vst_read_dram_16(uint64_t const addr)
+uint16_t vst_read_dram_16(uint64_t addr)
 {
     assert(!(addr & 1));
 
     return *(uint16_t *)addr;
 }
 
-inline uint32_t vst_read_dram_32(uint64_t const addr)
+uint32_t vst_read_dram_32(uint64_t addr)
 {
     assert(!(addr & 3));
 
     return *(uint32_t *)addr;
 }
 
-inline void vst_write_dram_8(uint64_t const addr, uint8_t const val)
+void vst_write_dram_8(uint64_t addr, uint8_t val)
 {
     *(uint8_t *)addr = val;
 }
 
-inline void vst_write_dram_16(uint64_t const addr, uint16_t const val)
+void vst_write_dram_16(uint64_t addr, uint16_t val)
 {
     assert(!(addr & 1));
 
     *(uint16_t *)addr = val;
 }
 
-inline void vst_write_dram_32(uint64_t const addr, uint32_t const val)
+void vst_write_dram_32(uint64_t addr, uint32_t val)
 {
     assert(!(addr & 3));
 
     *(uint32_t *)addr = val;
 }
 
-void vst_set_bit_dram(uint64_t const base_addr, uint32_t const bit_offset)
+void vst_set_bit_dram(uint64_t base_addr, uint32_t bit_offset)
 {
     uint64_t addr = base_addr + bit_offset / 8;
     uint32_t offset = bit_offset % 8;
@@ -76,7 +76,7 @@ void vst_set_bit_dram(uint64_t const base_addr, uint32_t const bit_offset)
     *(uint8_t *)addr = *(uint8_t *)addr | (1 << offset);
 }
 
-void vst_clr_bit_dram(uint64_t const base_addr, uint32_t const bit_offset)
+void vst_clr_bit_dram(uint64_t base_addr, uint32_t bit_offset)
 {
     uint64_t addr = base_addr + bit_offset / 8;
     uint32_t offset = bit_offset % 8;
@@ -84,7 +84,7 @@ void vst_clr_bit_dram(uint64_t const base_addr, uint32_t const bit_offset)
     *(uint8_t *)addr = *(uint8_t *)addr & ~(1 << offset);
 }
 
-uint32_t vst_tst_bit_dram(uint64_t const base_addr, uint32_t const bit_offset)
+uint32_t vst_tst_bit_dram(uint64_t base_addr, uint32_t bit_offset)
 {
     uint64_t addr = base_addr + bit_offset / 8;
     uint32_t offset = bit_offset % 8;
@@ -92,7 +92,7 @@ uint32_t vst_tst_bit_dram(uint64_t const base_addr, uint32_t const bit_offset)
     return (*(uint8_t *)addr) & (1 << offset);
 }
 
-void vst_memcpy(uint64_t const dst, uint64_t const src, uint32_t const len)
+void vst_memcpy(uint64_t dst, uint64_t src, uint32_t len)
 {
     record(LOG_RAM, "memcpy: mem[0x%lx] -> mem[0x%lx] of len %u\n", src, dst, len);
 
@@ -160,7 +160,7 @@ void vst_memcpy(uint64_t const dst, uint64_t const src, uint32_t const len)
     }
 }
 
-void vst_memset(uint64_t const addr, uint32_t const val, uint32_t const len)
+void vst_memset(uint64_t addr, uint32_t val, uint32_t len)
 {
     record(LOG_RAM, "memset: mem[0x%lx] of len %u\n", addr, len);
 
@@ -176,7 +176,7 @@ void vst_memset(uint64_t const addr, uint32_t const val, uint32_t const len)
     memset((void *)addr, val, len);
 }
 
-uint32_t vst_mem_search_min(uint64_t const addr, uint32_t const unit, uint32_t const size)
+uint32_t vst_mem_search_min(uint64_t addr, uint32_t unit, uint32_t size)
 {
     assert(unit == 1 || unit == 2 || unit == 4);
     assert(!(addr % unit));
@@ -227,7 +227,7 @@ uint32_t vst_mem_search_min(uint64_t const addr, uint32_t const unit, uint32_t c
     return idx;
 }
 
-uint32_t vst_mem_search_max(uint64_t const addr, uint32_t const unit, uint32_t const size)
+uint32_t vst_mem_search_max(uint64_t addr, uint32_t unit, uint32_t size)
 {
     assert(!(addr % size));
     assert(unit == 1 || unit == 2 || unit == 4);
@@ -266,8 +266,8 @@ uint32_t vst_mem_search_max(uint64_t const addr, uint32_t const unit, uint32_t c
     return idx;
 }
 
-uint32_t vst_mem_search_equ(uint64_t const addr, uint32_t const unit,
-                       uint32_t const size, uint32_t const val)
+uint32_t vst_mem_search_equ(uint64_t addr, uint32_t unit,
+                       uint32_t size, uint32_t val)
 {
     //TODO
     return 0;

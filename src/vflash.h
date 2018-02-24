@@ -28,13 +28,13 @@ typedef struct {
 } flash_t;
 
 /* flash memory APIs */
-void vst_read_page(uint32_t const bank, uint32_t const blk, uint32_t const page, 
-               uint32_t const sect, uint32_t const n_sect, uint64_t const dram_addr);
-void vst_write_page(uint32_t const bank, uint32_t const blk, uint32_t const page,
-                uint32_t const sect, uint32_t const n_sect, uint64_t const dram_addr);
-void vst_copyback_page(uint32_t const bank, uint32_t const blk_src, uint32_t const page_src,
-                   uint32_t const blk_dst, uint32_t const page_dst);
-void vst_erase_block(uint32_t const bank, uint32_t const blk);
+void vst_read_page(uint32_t bank, uint32_t blk, uint32_t page, 
+               uint32_t sect, uint32_t n_sect, uint64_t dram_addr);
+void vst_write_page(uint32_t bank, uint32_t blk, uint32_t page,
+                uint32_t sect, uint32_t n_sect, uint64_t dram_addr);
+void vst_copyback_page(uint32_t bank, uint32_t blk_src, uint32_t page_src,
+                   uint32_t blk_dst, uint32_t page_dst);
+void vst_erase_block(uint32_t bank, uint32_t blk);
 
 int open_flash(void);
 void close_flash(void);
