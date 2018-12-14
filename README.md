@@ -12,7 +12,7 @@ Currently, VST has been applied to the ([Jasmine OpenSSD project](http://www.ope
 ### Build Simulator
 
 ``` shell
-git clone https://github.com/ssdlab-nthu/vst.git
+git clone git@github.com:yschang1206/vst.git
 cd vst/jasmine
 make
 ```
